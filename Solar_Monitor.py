@@ -15,10 +15,8 @@ load_dotenv()
 # Configuration
 GITHUB_USERNAME = "GenergyDashboard"
 GITHUB_REPO = "MuirCollege"
-# Use absolute path to ensure we write to the correct location
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE = os.path.join(SCRIPT_DIR, "solar_data.json")
-CSV_DOWNLOAD_PATH = os.path.join(SCRIPT_DIR, "downloads")
+DATA_FILE = "solar_data.json"
+CSV_DOWNLOAD_PATH = "downloads"
 DATA_INTERVAL_MINUTES = 5
 
 # Get credentials from environment variables
@@ -440,150 +438,28 @@ def parse_csv_data(filepath: str) -> dict:
     }
 
 def push_to_github(data: dict):
-    """Push updated data to GitHub with detailed debugging"""
+    """Write solar data to JSON file for GitHub Pages to serve"""
     try:
-        # Ensure DATA_FILE path is correct and absolute
         json_path = os.path.abspath(DATA_FILE)
         print(f"  → Writing JSON to: {json_path}")
         
-        # Write the file
+        # Write the JSON file
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
         
-        print(f"  ✓ JSON file written")
+        print(f"  ✓ JSON file updated successfully")
         
-        # Verify file was actually written with new data
+        # Verify it was written
         with open(json_path, 'r', encoding='utf-8') as f:
             written_data = json.load(f)
         
         written_timestamp = written_data.get('timestamp', 'UNKNOWN')
-        expected_timestamp = data.get('timestamp', 'UNKNOWN')
+        print(f"  ✓ Timestamp: {written_timestamp}")
+        print(f"  ✓ File ready for GitHub Pages to serve")
         
-        print(f"  ✓ Verification - Written timestamp: {written_timestamp}")
-        print(f"  ✓ Verification - Expected timestamp: {expected_timestamp}")
-        
-        if written_timestamp != expected_timestamp:
-            print(f"  ✗ ERROR: Timestamp mismatch! File may not have written correctly")
-            return
-        
-        file_size = os.path.getsize(json_path)
-        print(f"  ✓ File size: {file_size} bytes")
-        
-        # Now handle Git operations
-        startupinfo = None
-        if os.name == 'nt':
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-        
-        github_url = f"https://{GITHUB_USERNAME}:{GITHUB_TOKEN}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO}.git"
-        
-        # Change to repo directory to ensure git commands work in right location
-        print(f"  → Git operations in: {SCRIPT_DIR}")
-        original_dir = os.getcwd()
-        os.chdir(SCRIPT_DIR)
-        
-        try:
-            # Step 1: Clean working directory
-            print(f"  → Cleaning working directory...")
-            subprocess.run(
-                ["git", "reset", "--hard", "HEAD"],
-                capture_output=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            
-            # Step 2: Check status before staging
-            status_before = subprocess.run(
-                ["git", "status", "--porcelain"],
-                capture_output=True,
-                text=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            print(f"  → Git status before staging: {status_before.stdout.strip() if status_before.stdout.strip() else '(clean)'}")
-            
-            # Step 3: Force Git to recognize the file as changed
-            print(f"  → Force refreshing Git index...")
-            subprocess.run(
-                ["git", "rm", "--cached", "solar_data.json"],
-                capture_output=True,
-                text=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            
-            # Step 4: Re-add the file
-            print(f"  → Staging solar_data.json...")
-            add_result = subprocess.run(
-                ["git", "add", "solar_data.json"],
-                capture_output=True,
-                text=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            if add_result.returncode != 0:
-                print(f"  ✗ Add failed: {add_result.stderr}")
-                return
-            
-            # Step 4: Check status after staging
-            status_after = subprocess.run(
-                ["git", "status", "--porcelain"],
-                capture_output=True,
-                text=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            print(f"  → Git status after staging: {status_after.stdout.strip() if status_after.stdout.strip() else '(no changes)'}")
-            
-            if not status_after.stdout.strip():
-                print(f"  ℹ No changes detected by Git (file may be identical)")
-                return
-            
-            # Step 5: Commit
-            print(f"  → Committing changes...")
-            commit_result = subprocess.run(
-                ["git", "commit", "-m", f"Update solar data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
-                capture_output=True,
-                text=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            if commit_result.returncode != 0:
-                print(f"  ✗ Commit failed: {commit_result.stderr}")
-                return
-            print(f"  ✓ Committed")
-            
-            # Step 6: Fetch
-            print(f"  → Fetching from remote...")
-            subprocess.run(
-                ["git", "fetch", "origin"],
-                capture_output=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            
-            # Step 7: Push
-            print(f"  → Pushing to GitHub...")
-            push_result = subprocess.run(
-                ["git", "push", "origin", "main"],
-                capture_output=True,
-                text=True,
-                startupinfo=startupinfo,
-                cwd=SCRIPT_DIR
-            )
-            
-            if push_result.returncode == 0:
-                print(f"  ✓ Data pushed to GitHub ({GITHUB_USERNAME}/{GITHUB_REPO})")
-            else:
-                print(f"  ✗ Push failed: {push_result.stderr}")
-                
-        finally:
-            os.chdir(original_dir)
-            
     except Exception as e:
-        print(f"  ✗ Unexpected error: {e}")
-        
+        print(f"  ✗ Error writing JSON: {e}")
+
 def main_loop():
     """Main loop - runs every 5 minutes with auto-restart on error"""
     print("☀️ Solar Monitor Started - Muir College Dashboard")
