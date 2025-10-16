@@ -52,4 +52,3 @@ MuirCollege_setup.bat
 cleanup_and_push.py
 fix_git_config.bat
 git-credentials-helper.bat
-solar_data.json 
