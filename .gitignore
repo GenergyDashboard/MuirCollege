@@ -1,0 +1,46 @@
+# Environment variables - NEVER commit these!
+.env
+.env.local
+.env.*.local
+
+# Credentials and secrets
+*.pem
+*.key
+credentials.json
+secrets.json
+persistent_totals.json
+
+# Setup scripts
+setup_github.py
+setup_github.bat
+MuirCollege_setup.bat
+cleanup_and_push.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Downloads and temporary files
+downloads/
+*.csv
+error_screenshot_*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
