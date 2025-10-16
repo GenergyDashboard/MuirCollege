@@ -15,8 +15,10 @@ load_dotenv()
 # Configuration
 GITHUB_USERNAME = "GenergyDashboard"
 GITHUB_REPO = "MuirCollege"
-DATA_FILE = "solar_data.json"
-CSV_DOWNLOAD_PATH = "downloads"
+# Use absolute path to ensure we write to the correct location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(SCRIPT_DIR, "solar_data.json")
+CSV_DOWNLOAD_PATH = os.path.join(SCRIPT_DIR, "downloads")
 DATA_INTERVAL_MINUTES = 5
 
 # Get credentials from environment variables
@@ -501,7 +503,17 @@ def push_to_github(data: dict):
             )
             print(f"  → Git status before staging: {status_before.stdout.strip() if status_before.stdout.strip() else '(clean)'}")
             
-            # Step 3: Explicitly add just the solar_data.json file
+            # Step 3: Force Git to recognize the file as changed
+            print(f"  → Force refreshing Git index...")
+            subprocess.run(
+                ["git", "rm", "--cached", "solar_data.json"],
+                capture_output=True,
+                text=True,
+                startupinfo=startupinfo,
+                cwd=SCRIPT_DIR
+            )
+            
+            # Step 4: Re-add the file
             print(f"  → Staging solar_data.json...")
             add_result = subprocess.run(
                 ["git", "add", "solar_data.json"],
@@ -571,6 +583,7 @@ def push_to_github(data: dict):
             
     except Exception as e:
         print(f"  ✗ Unexpected error: {e}")
+        
 def main_loop():
     """Main loop - runs every 5 minutes with auto-restart on error"""
     print("☀️ Solar Monitor Started - Muir College Dashboard")
