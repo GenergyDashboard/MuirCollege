@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muir College Solar Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f0f;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .animated-sun {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sun-circle {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle at 30% 30%, #FFE135, #FFB81C);
+            border-radius: 50%;
+            position: absolute;
+            animation: float 8s ease-in-out infinite;
+            box-shadow: 0 0 50px rgba(255, 225, 53, 0.6);
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 5px;
+            color: #ffffff;
+        }
+        
+        .header p {
+            font-size: 1.8em;
+            color: #888;
+            font-weight: 300;
+            letter-spacing: 1px;
+            position: relative;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .genergy-text {
+            background: linear-gradient(90deg, #888 0%, #888 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+        
+        .genergy-text::before {
+            content: 'Genergy';
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            width: 0%;
+            overflow: hidden;
+            animation: greenSweep 3s ease-in-out infinite;
+        }
+        
+        @keyframes greenSweep {
+            0%, 100% {
+                width: 0%;
+            }
+            50% {
+                width: 100%;
+            }
+        }
+        
+        .last-updated {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 15px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card:hover {
+            background: #222;
+            border-color: #555;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 165, 0, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1em;
+            color: #888;
+            margin-bottom: 15px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .card-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #FFD700;
+            margin-bottom: 5px;
+        }
+        
+        .card-unit {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .current-power {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            grid-column: span 2;
+        }
+        
+        .current-power .card-title,
+        .current-power .card-unit {
+            color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .current-power .card-value {
+            color: #000;
+            font-size: 3.5em;
+        }
+        
+        @media (max-width: 768px) {
+            .current-power {
+                grid-column: span 1;
+            }
+        }
+        
+        .env-sections {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 1024px) {
+            .env-sections {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid #333;
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            margin-bottom: 25px;
+            color: #fff;
+            border-bottom: 2px solid #FFD700;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-icon {
+            font-size: 1.3em;
+        }
+        
+        .env-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .env-item {
+            padding: 15px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            border-left: 3px solid #FFD700;
+            position: relative;
+            cursor: help;
+            transition: all 0.3s ease;
+        }
+        
+        .env-item:hover {
+            background: #1a1a1a;
+            border-left-color: #FFA500;
+        }
+        
+        .env-item-label {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .env-item-value {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #FFD700;
+        }
+        
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background: #2a2a2a;
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            line-height: 1.4;
+            width: 280px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            border: 1px solid #444;
+        }
+        
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #2a2a2a;
+        }
+        
+        .tooltip.show {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+        
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            width: 0%;
+            transition: width 3s linear;
+            border-radius: 0 0 0 8px;
+        }
+        
+        .env-item:hover .progress-bar {
+            width: 100%;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+            font-size: 1.2em;
+        }
+        
+        .error {
+            background: #2a1a1a;
+            color: #ff6b6b;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+            border: 1px solid #5a2a2a;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .header p {
+                font-size: 1.3em;
+            }
+            
+            .animated-sun {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .sun-circle {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .tooltip {
+                width: 220px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="animated-sun">
+                <div class="sun-circle"></div>
+            </div>
+            <h1>Muir College Solar Dashboard</h1>
+            <p>Powered by <span class="genergy-text">Genergy</span></p>
+            <div class="last-updated" id="lastUpdated">Loading...</div>
+        </div>
+        
+        <div id="loading" class="loading">Loading solar data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="content" style="display: none;">
+            <div class="grid">
+                <div class="card current-power">
+                    <div class="card-title">⚡ Current Power</div>
+                    <div class="card-value" id="currentPower">0</div>
+                    <div class="card-unit">Watts</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">📅 Today's Total</div>
+                    <div class="card-value" id="dailyTotal">0</div>
+                    <div class="card-unit">kWh</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">📆 This Month</div>
+                    <div class="card-value" id="monthlyTotal">0</div>
+                    <div class="card-unit">kWh</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">☀️ Lifetime Total</div>
+                    <div class="card-value" id="lifetimeTotal">0</div>
+                    <div class="card-unit">kWh</div>
+                </div>
+            </div>
+            
+            <div class="env-sections">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="section-icon">📊</span>
+                        <span>Today</span>
+                    </div>
+                    <div class="env-grid" id="dailyEnv"></div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">
+                        <span class="section-icon">📈</span>
+                        <span>This Month</span>
+                    </div>
+                    <div class="env-grid" id="monthlyEnv"></div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">
+                        <span class="section-icon">☀️</span>
+                        <span>Lifetime</span>
+                    </div>
+                    <div class="env-grid" id="lifetimeEnv"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const DATA_URL = 'solar_data.json';
+        
+        const tooltipDescriptions = {
+            'co2': 'Amount of CO₂ emissions prevented by using solar power instead of conventional electricity from the grid.',
+            'trees': 'Equivalent number of trees needed to absorb the same amount of CO₂ that was avoided through solar generation.',
+            'households': 'Number of years an average household could be powered with this amount of energy.',
+            'driven': 'Distance you could drive an average car that would produce the same CO₂ emissions as the electricity generated.',
+            'flown': 'Distance you could fly in an airplane that would produce the same CO₂ emissions as the electricity generated.',
+            'coal': 'Amount of coal that would need to be burned to generate the same amount of electricity.',
+            'water': 'Amount of water saved by using solar power instead of conventional power plants, which require water for cooling.'
+        };
+        
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US', {
+                maximumFractionDigits: 2
+            }).format(num);
+        }
+        
+        function getTooltipKey(label) {
+            const lower = label.toLowerCase();
+            if (lower.includes('co₂') || lower.includes('co2')) return 'co2';
+            if (lower.includes('tree')) return 'trees';
+            if (lower.includes('household')) return 'households';
+            if (lower.includes('driven')) return 'driven';
+            if (lower.includes('flown')) return 'flown';
+            if (lower.includes('coal')) return 'coal';
+            if (lower.includes('water')) return 'water';
+            return null;
+        }
+        
+        function createEnvItem(label, value, unit = '') {
+            const tooltipKey = getTooltipKey(label);
+            const tooltipText = tooltipKey ? tooltipDescriptions[tooltipKey] : '';
+            
+            return `
+                <div class="env-item" data-tooltip="${tooltipText}">
+                    <div class="env-item-label">${label}</div>
+                    <div class="env-item-value">${formatNumber(value)} ${unit}</div>
+                    <div class="progress-bar"></div>
+                    ${tooltipText ? `<div class="tooltip">${tooltipText}</div>` : ''}
+                </div>
+            `;
+        }
+        
+        function displayEnvironmentalData(data, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                ${createEnvItem('💨 CO₂ Avoided', data.co2_avoided_kg, 'kg')}
+                ${createEnvItem('🌳 Trees Equivalent', data.trees_planted_lower, 'trees')}
+                ${createEnvItem('🏠 Households Powered', data.households_powered, 'years')}
+                ${createEnvItem('🚗 km Driven Equivalent', data.km_driven_equivalent, 'km')}
+                ${createEnvItem('✈️ km Flown Equivalent', data.km_flown_equivalent, 'km')}
+                ${createEnvItem('⚫ Coal Saved', data.coal_saved_kg, 'kg')}
+                ${createEnvItem('💧 Water Saved', data.water_saved_litres, 'litres')}
+            `;
+            
+            // Add tooltip functionality
+            const items = container.querySelectorAll('.env-item');
+            items.forEach(item => {
+                const tooltip = item.querySelector('.tooltip');
+                if (tooltip) {
+                    let timeout;
+                    item.addEventListener('mouseenter', () => {
+                        timeout = setTimeout(() => {
+                            tooltip.classList.add('show');
+                        }, 3000);
+                    });
+                    item.addEventListener('mouseleave', () => {
+                        clearTimeout(timeout);
+                        tooltip.classList.remove('show');
+                    });
+                }
+            });
+        }
+        
+        async function fetchData() {
+            try {
+                const response = await fetch(DATA_URL + '?t=' + Date.now());
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
+                const data = await response.json();
+                
+                document.getElementById('currentPower').textContent = formatNumber(data.current_power_w);
+                document.getElementById('dailyTotal').textContent = formatNumber(data.daily_total_kwh);
+                document.getElementById('monthlyTotal').textContent = formatNumber(data.monthly_total_kwh);
+                document.getElementById('lifetimeTotal').textContent = formatNumber(data.lifetime_total_kwh);
+                
+                displayEnvironmentalData(data.daily_environmental, 'dailyEnv');
+                displayEnvironmentalData(data.monthly_environmental, 'monthlyEnv');
+                displayEnvironmentalData(data.lifetime_environmental, 'lifetimeEnv');
+                
+                const updateTime = new Date(data.timestamp);
+                document.getElementById('lastUpdated').textContent = 
+                    `Last updated: ${updateTime.toLocaleString()}`;
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').textContent = 
+                    'Unable to load solar data. Retrying...';
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+        
+        fetchData();
+        setInterval(fetchData, 60000);
+    </script>
+</body>
+</html>
