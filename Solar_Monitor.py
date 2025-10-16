@@ -79,76 +79,95 @@ def run_playwright(playwright: Playwright) -> str:
         
         print("  → Waiting for page load...")
         page.wait_for_load_state("networkidle", timeout=60000)
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(2000)
         
         print("  → Filling in credentials...")
-        # Try multiple selectors for the email field
-        email_selectors = [
-            'input[type="text"]',
-            'input[placeholder*="Mail" i]',
-            'input[name*="mail" i]',
-            'input[id*="mail" i]'
-        ]
-        
-        email_filled = False
-        for selector in email_selectors:
-            try:
-                page.locator(selector).first.fill(SOLAR_EMAIL, timeout=5000)
-                print(f"  ✓ Email filled using selector: {selector}")
-                email_filled = True
-                break
-            except:
-                continue
-        
-        if not email_filled:
-            raise Exception("Could not find email input field")
+        # Use role-based selectors (more reliable)
+        try:
+            page.get_by_role("textbox", name="Email").click(timeout=10000)
+            page.get_by_role("textbox", name="Email").fill(SOLAR_EMAIL)
+            print("  ✓ Email filled using role selector")
+        except Exception as e:
+            print(f"  ⚠ Role selector failed, trying fallback: {e}")
+            # Fallback to multiple selectors
+            email_selectors = [
+                'input[type="text"]',
+                'input[placeholder*="Mail" i]',
+                'input[name*="mail" i]',
+                'input[id*="mail" i]'
+            ]
+            
+            email_filled = False
+            for selector in email_selectors:
+                try:
+                    page.locator(selector).first.fill(SOLAR_EMAIL, timeout=5000)
+                    print(f"  ✓ Email filled using selector: {selector}")
+                    email_filled = True
+                    break
+                except:
+                    continue
+            
+            if not email_filled:
+                raise Exception("Could not find email input field")
         
         page.wait_for_timeout(1000)
         
-        # Try multiple selectors for password field
-        password_selectors = [
-            'input[type="password"]',
-            'input[placeholder*="Pass" i]',
-            'input[name*="pass" i]',
-            'input[id*="pass" i]'
-        ]
-        
-        password_filled = False
-        for selector in password_selectors:
-            try:
-                page.locator(selector).first.fill(SOLAR_PASSWORD, timeout=5000)
-                print(f"  ✓ Password filled using selector: {selector}")
-                password_filled = True
-                break
-            except:
-                continue
-        
-        if not password_filled:
-            raise Exception("Could not find password input field")
+        print("  → Filling password...")
+        try:
+            page.get_by_role("textbox", name="Password").click(timeout=10000)
+            page.get_by_role("textbox", name="Password").fill(SOLAR_PASSWORD)
+            print("  ✓ Password filled using role selector")
+        except Exception as e:
+            print(f"  ⚠ Role selector failed, trying fallback: {e}")
+            # Fallback to multiple selectors
+            password_selectors = [
+                'input[type="password"]',
+                'input[placeholder*="Pass" i]',
+                'input[name*="pass" i]',
+                'input[id*="pass" i]'
+            ]
+            
+            password_filled = False
+            for selector in password_selectors:
+                try:
+                    page.locator(selector).first.fill(SOLAR_PASSWORD, timeout=5000)
+                    print(f"  ✓ Password filled using selector: {selector}")
+                    password_filled = True
+                    break
+                except:
+                    continue
+            
+            if not password_filled:
+                raise Exception("Could not find password input field")
         
         page.wait_for_timeout(1000)
         
         print("  → Clicking login button...")
-        # Try multiple ways to click the login button
-        login_clicked = False
-        login_selectors = [
-            'button:has-text("Anmelden")',
-            'button[type="submit"]',
-            'button:has-text("Log")',
-            'input[type="submit"]'
-        ]
-        
-        for selector in login_selectors:
-            try:
-                page.locator(selector).first.click(timeout=5000)
-                print(f"  ✓ Login button clicked using selector: {selector}")
-                login_clicked = True
-                break
-            except:
-                continue
-        
-        if not login_clicked:
-            raise Exception("Could not find login button")
+        try:
+            page.get_by_role("button", name="Log In").click(timeout=10000)
+            print("  ✓ Login button clicked using role selector")
+        except Exception as e:
+            print(f"  ⚠ Role selector failed, trying fallback: {e}")
+            # Fallback login button selectors
+            login_selectors = [
+                'button:has-text("Log In")',
+                'button:has-text("Anmelden")',
+                'button[type="submit"]',
+                'input[type="submit"]'
+            ]
+            
+            login_clicked = False
+            for selector in login_selectors:
+                try:
+                    page.locator(selector).first.click(timeout=5000)
+                    print(f"  ✓ Login button clicked using selector: {selector}")
+                    login_clicked = True
+                    break
+                except:
+                    continue
+            
+            if not login_clicked:
+                raise Exception("Could not find login button")
         
         print("  → Waiting for login to complete...")
         page.wait_for_timeout(5000)
@@ -487,7 +506,7 @@ def main_loop():
             
         except Exception as e:
             print(f"✗ Error occurred: {e}")
-            print(f"⟳ Restarting immediately...\n")
+            print(f"⏳ Restarting immediately...\n")
             time.sleep(5)
 
 if __name__ == "__main__":
