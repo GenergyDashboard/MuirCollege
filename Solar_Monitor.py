@@ -439,8 +439,21 @@ def parse_csv_data(filepath: str) -> dict:
 
 def push_to_github(data: dict):
     """Push updated data to GitHub with explicit fetch and merge strategy"""
-    with open(DATA_FILE, 'w') as f:
+    # Ensure DATA_FILE path is correct
+    json_path = os.path.abspath(DATA_FILE)
+    print(f"  → Writing JSON to: {json_path}")
+    
+    with open(json_path, 'w') as f:
         json.dump(data, f, indent=2)
+    
+    print(f"  ✓ JSON file written successfully")
+    
+    # Verify file exists and has content
+    if os.path.exists(json_path):
+        file_size = os.path.getsize(json_path)
+        print(f"  ✓ File exists, size: {file_size} bytes")
+    else:
+        print(f"  ✗ ERROR: File does not exist after writing!")
     
     try:
         startupinfo = None
