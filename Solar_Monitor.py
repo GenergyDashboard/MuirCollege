@@ -438,7 +438,7 @@ def parse_csv_data(filepath: str) -> dict:
     }
 
 def push_to_github(data: dict):
-    """Write solar data to JSON file for GitHub Pages to serve"""
+    """Write solar data to JSON file and push to GitHub"""
     try:
         json_path = os.path.abspath(DATA_FILE)
         print(f"  → Writing JSON to: {json_path}")
@@ -455,11 +455,42 @@ def push_to_github(data: dict):
         
         written_timestamp = written_data.get('timestamp', 'UNKNOWN')
         print(f"  ✓ Timestamp: {written_timestamp}")
+        
+        # Push to GitHub
+        print(f"  → Pushing to GitHub...")
+        
+        # Add only the solar data JSON (persistent_totals.json stays local)
+        subprocess.run(['git', 'add', DATA_FILE], 
+                      check=True, capture_output=True, text=True)
+        
+        # Commit with timestamp
+        commit_message = f"Update solar data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        subprocess.run(['git', 'commit', '-m', commit_message], 
+                      check=True, capture_output=True, text=True)
+        
+        # Push to remote (use -u flag first time to set upstream)
+        try:
+            result = subprocess.run(['git', 'push'], 
+                                   check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError:
+            # If push fails, try setting upstream
+            result = subprocess.run(['git', 'push', '--set-upstream', 'origin', 'main'], 
+                                   check=True, capture_output=True, text=True)
+        
+        print(f"  ✓ Pushed to GitHub successfully")
         print(f"  ✓ File ready for GitHub Pages to serve")
         
+    except subprocess.CalledProcessError as e:
+        # Check if it's a "nothing to commit" error (which is fine)
+        if "nothing to commit" in e.stdout or "nothing to commit" in e.stderr:
+            print(f"  ℹ No changes to commit (data unchanged)")
+        else:
+            print(f"  ✗ Git error: {e.stderr}")
+            raise
     except Exception as e:
-        print(f"  ✗ Error writing JSON: {e}")
-
+        print(f"  ✗ Error writing/pushing JSON: {e}")
+        raise
+    
 def main_loop():
     """Main loop - runs every 5 minutes with auto-restart on error"""
     print("☀️ Solar Monitor Started - Muir College Dashboard")
