@@ -22,7 +22,7 @@ DATA_INTERVAL_MINUTES = 5
 # Get credentials from environment variables
 SOLAR_EMAIL = os.getenv('SOLAR_EMAIL')
 SOLAR_PASSWORD = os.getenv('SOLAR_PASSWORD')
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', SOLAR_PASSWORD)  # Use same password for GitHub
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', SOLAR_PASSWORD)
 
 # Validate credentials
 if not SOLAR_EMAIL or not SOLAR_PASSWORD:
@@ -79,16 +79,76 @@ def run_playwright(playwright: Playwright) -> str:
         
         print("  → Waiting for page load...")
         page.wait_for_load_state("networkidle", timeout=60000)
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(3000)
         
         print("  → Filling in credentials...")
-        page.get_by_role("textbox", name="Email").click()
-        page.get_by_role("textbox", name="Email").fill(SOLAR_EMAIL)
-        page.get_by_role("textbox", name="Password").click()
-        page.get_by_role("textbox", name="Password").fill(SOLAR_PASSWORD)
+        # Try multiple selectors for the email field
+        email_selectors = [
+            'input[type="text"]',
+            'input[placeholder*="Mail" i]',
+            'input[name*="mail" i]',
+            'input[id*="mail" i]'
+        ]
+        
+        email_filled = False
+        for selector in email_selectors:
+            try:
+                page.locator(selector).first.fill(SOLAR_EMAIL, timeout=5000)
+                print(f"  ✓ Email filled using selector: {selector}")
+                email_filled = True
+                break
+            except:
+                continue
+        
+        if not email_filled:
+            raise Exception("Could not find email input field")
+        
+        page.wait_for_timeout(1000)
+        
+        # Try multiple selectors for password field
+        password_selectors = [
+            'input[type="password"]',
+            'input[placeholder*="Pass" i]',
+            'input[name*="pass" i]',
+            'input[id*="pass" i]'
+        ]
+        
+        password_filled = False
+        for selector in password_selectors:
+            try:
+                page.locator(selector).first.fill(SOLAR_PASSWORD, timeout=5000)
+                print(f"  ✓ Password filled using selector: {selector}")
+                password_filled = True
+                break
+            except:
+                continue
+        
+        if not password_filled:
+            raise Exception("Could not find password input field")
+        
+        page.wait_for_timeout(1000)
         
         print("  → Clicking login button...")
-        page.get_by_role("button", name="Log In").click()
+        # Try multiple ways to click the login button
+        login_clicked = False
+        login_selectors = [
+            'button:has-text("Anmelden")',
+            'button[type="submit"]',
+            'button:has-text("Log")',
+            'input[type="submit"]'
+        ]
+        
+        for selector in login_selectors:
+            try:
+                page.locator(selector).first.click(timeout=5000)
+                print(f"  ✓ Login button clicked using selector: {selector}")
+                login_clicked = True
+                break
+            except:
+                continue
+        
+        if not login_clicked:
+            raise Exception("Could not find login button")
         
         print("  → Waiting for login to complete...")
         page.wait_for_timeout(5000)
@@ -354,7 +414,6 @@ def push_to_github(data: dict):
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
         
-        # Stage the data file
         subprocess.run(
             ["git", "add", DATA_FILE], 
             check=True, 
@@ -362,7 +421,6 @@ def push_to_github(data: dict):
             startupinfo=startupinfo
         )
         
-        # Commit with timestamp
         subprocess.run(
             ["git", "commit", "-m", f"Update solar data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"], 
             check=True, 
@@ -370,7 +428,6 @@ def push_to_github(data: dict):
             startupinfo=startupinfo
         )
         
-        # Push using credentials in URL
         github_url = f"https://{GITHUB_USERNAME}:{GITHUB_TOKEN}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO}.git"
         subprocess.run(
             ["git", "push", github_url, "main"], 
@@ -383,7 +440,6 @@ def push_to_github(data: dict):
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode() if e.stderr else str(e)
         print(f"  ✗ Git error: {error_msg}")
-        # Try without credentials if first attempt fails
         try:
             subprocess.run(["git", "push"], check=True, capture_output=True, startupinfo=startupinfo)
             print(f"  ✓ Pushed using stored credentials")
@@ -417,7 +473,6 @@ def main_loop():
             else:
                 print("✗ No data parsed\n")
             
-            # Cleanup old files
             csv_files = sorted(Path(CSV_DOWNLOAD_PATH).glob("*.csv"))
             for old_file in csv_files[:-10]:
                 old_file.unlink()
