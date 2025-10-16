@@ -177,7 +177,13 @@ def run_playwright(playwright: Playwright) -> str:
         
         print("  → Waiting for page to fully load...")
         page.wait_for_load_state("domcontentloaded", timeout=30000)
-        page.wait_for_load_state("networkidle", timeout=60000)
+        
+        # Don't wait for networkidle on SPA - wait for specific element instead
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except:
+            print("  ⚠ Network still active (normal for SPAs), continuing...")
+        
         page.wait_for_timeout(5000)
         
         print("  → Waiting for search component to be visible...")
@@ -203,7 +209,12 @@ def run_playwright(playwright: Playwright) -> str:
         page.wait_for_timeout(5000)
         
         print("  → Waiting for insights page to fully load...")
-        page.wait_for_load_state("networkidle", timeout=60000)
+        # Don't wait for networkidle - wait for specific elements instead
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except:
+            print("  ⚠ Network still active (normal for SPAs), continuing...")
+        
         page.wait_for_timeout(3000)
         
         print(f"  → Setting data interval to {DATA_INTERVAL_MINUTES} minutes...")
@@ -228,7 +239,12 @@ def run_playwright(playwright: Playwright) -> str:
             print(f"  ⚠ Could not set interval (will use default): {e}")
         
         print("  → Waiting for data to reload...")
-        page.wait_for_load_state("networkidle", timeout=60000)
+        # Don't wait for networkidle - just give it time to reload
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except:
+            print("  ⚠ Network still active (normal for SPAs), continuing...")
+        
         page.wait_for_timeout(3000)
         
         print("  → Downloading CSV...")
@@ -433,12 +449,37 @@ def push_to_github(data: dict):
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
         
+        # Pull latest changes first to avoid conflicts
+        github_url = f"https://{GITHUB_USERNAME}:{GITHUB_TOKEN}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO}.git"
+        try:
+            subprocess.run(
+                ["git", "pull", github_url, "main", "--rebase"], 
+                check=True, 
+                capture_output=True,
+                startupinfo=startupinfo
+            )
+            print(f"  ✓ Pulled latest changes from GitHub")
+        except subprocess.CalledProcessError as pull_error:
+            print(f"  ⚠ Pull warning (may be first run): {pull_error.stderr.decode() if pull_error.stderr else 'No error details'}")
+        
         subprocess.run(
             ["git", "add", DATA_FILE], 
             check=True, 
             capture_output=True,
             startupinfo=startupinfo
         )
+        
+        # Check if there are changes to commit
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            startupinfo=startupinfo
+        )
+        
+        if not result.stdout.strip():
+            print(f"  ℹ No changes to commit")
+            return
         
         subprocess.run(
             ["git", "commit", "-m", f"Update solar data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"], 
@@ -447,7 +488,6 @@ def push_to_github(data: dict):
             startupinfo=startupinfo
         )
         
-        github_url = f"https://{GITHUB_USERNAME}:{GITHUB_TOKEN}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO}.git"
         subprocess.run(
             ["git", "push", github_url, "main"], 
             check=True, 
