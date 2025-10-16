@@ -438,7 +438,7 @@ def parse_csv_data(filepath: str) -> dict:
     }
 
 def push_to_github(data: dict):
-    """Push updated data to GitHub using credentials"""
+    """Push updated data to GitHub with explicit fetch and merge strategy"""
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=2)
     
@@ -449,27 +449,26 @@ def push_to_github(data: dict):
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
         
-        # Pull latest changes first to avoid conflicts
         github_url = f"https://{GITHUB_USERNAME}:{GITHUB_TOKEN}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO}.git"
-        try:
-            subprocess.run(
-                ["git", "pull", github_url, "main", "--rebase"], 
-                check=True, 
-                capture_output=True,
-                startupinfo=startupinfo
-            )
-            print(f"  ✓ Pulled latest changes from GitHub")
-        except subprocess.CalledProcessError as pull_error:
-            print(f"  ⚠ Pull warning (may be first run): {pull_error.stderr.decode() if pull_error.stderr else 'No error details'}")
         
+        # Step 1: Ensure clean working directory
+        print(f"  → Step 1: Cleaning working directory...")
         subprocess.run(
-            ["git", "add", DATA_FILE], 
+            ["git", "reset", "--hard", "HEAD"],
+            capture_output=True,
+            startupinfo=startupinfo
+        )
+        
+        # Step 2: Stage our changes (both tracked and untracked)
+        print(f"  → Step 2: Staging all changes...")
+        subprocess.run(
+            ["git", "add", "-A"], 
             check=True, 
             capture_output=True,
             startupinfo=startupinfo
         )
         
-        # Check if there are changes to commit
+        # Step 3: Check if there are actual changes
         result = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True,
@@ -481,6 +480,10 @@ def push_to_github(data: dict):
             print(f"  ℹ No changes to commit")
             return
         
+        print(f"  → Changes detected: {result.stdout.strip()}")
+        
+        # Step 4: Commit locally
+        print(f"  → Step 3: Committing changes locally...")
         subprocess.run(
             ["git", "commit", "-m", f"Update solar data: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"], 
             check=True, 
@@ -488,22 +491,93 @@ def push_to_github(data: dict):
             startupinfo=startupinfo
         )
         
-        subprocess.run(
-            ["git", "push", github_url, "main"], 
-            check=True, 
+        # Step 5: Fetch from remote
+        print(f"  → Step 4: Fetching from remote repository...")
+        fetch_result = subprocess.run(
+            ["git", "fetch", "origin"],
             capture_output=True,
+            text=True,
+            timeout=30,
+            startupinfo=startupinfo
+        )
+        if fetch_result.returncode != 0:
+            print(f"  ⚠ Fetch warning: {fetch_result.stderr.decode()}")
+        
+        # Step 6: Check if local is behind remote
+        print(f"  → Step 5: Checking if local branch is behind remote...")
+        merge_base = subprocess.run(
+            ["git", "merge-base", "HEAD", "origin/main"],
+            capture_output=True,
+            text=True,
             startupinfo=startupinfo
         )
         
-        print(f"  ✓ Data pushed to GitHub ({GITHUB_USERNAME}/{GITHUB_REPO})")
+        remote_head = subprocess.run(
+            ["git", "rev-parse", "origin/main"],
+            capture_output=True,
+            text=True,
+            startupinfo=startupinfo
+        )
+        
+        local_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            startupinfo=startupinfo
+        )
+        
+        if remote_head.stdout.strip() != local_head.stdout.strip():
+            print(f"  ⚠ Local branch is behind remote, merging...")
+            
+            # Step 7: Merge remote main into local, preferring our version of solar_data.json
+            merge_result = subprocess.run(
+                ["git", "merge", "-X", "ours", "origin/main", 
+                 "-m", f"Merge remote: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
+                capture_output=True,
+                text=True,
+                startupinfo=startupinfo
+            )
+            
+            if merge_result.returncode != 0:
+                print(f"  ⚠ Merge had conflicts, resolving...")
+                # Re-add our version and complete merge
+                subprocess.run(
+                    ["git", "add", DATA_FILE],
+                    capture_output=True,
+                    startupinfo=startupinfo
+                )
+                subprocess.run(
+                    ["git", "commit", "--no-edit"],
+                    capture_output=True,
+                    startupinfo=startupinfo
+                )
+            print(f"  ✓ Merged remote changes")
+        else:
+            print(f"  ✓ Local branch is up to date with remote")
+        
+        # Step 8: Push to remote
+        print(f"  → Step 6: Pushing to GitHub...")
+        push_result = subprocess.run(
+            ["git", "push", "origin", "main"], 
+            capture_output=True,
+            text=True,
+            timeout=30,
+            startupinfo=startupinfo
+        )
+        
+        if push_result.returncode == 0:
+            print(f"  ✓ Data pushed to GitHub ({GITHUB_USERNAME}/{GITHUB_REPO})")
+        else:
+            error_msg = push_result.stderr.decode() if push_result.stderr else str(push_result)
+            print(f"  ✗ Push failed: {error_msg}")
+            
+    except subprocess.TimeoutExpired:
+        print(f"  ✗ Git operation timed out (network issue)")
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode() if e.stderr else str(e)
         print(f"  ✗ Git error: {error_msg}")
-        try:
-            subprocess.run(["git", "push"], check=True, capture_output=True, startupinfo=startupinfo)
-            print(f"  ✓ Pushed using stored credentials")
-        except:
-            print(f"  ✗ Push failed. You may need to configure Git credentials.")
+    except Exception as e:
+        print(f"  ✗ Unexpected error: {e}")
 
 def main_loop():
     """Main loop - runs every 5 minutes with auto-restart on error"""
