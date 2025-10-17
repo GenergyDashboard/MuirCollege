@@ -1,38 +1,38 @@
 {
-  "timestamp": "2025-10-17T13:26:12.128536",
+  "timestamp": "2025-10-17T14:38:24.525806",
   "current_power_w": 99336,
   "current_power_kwh": 99.34,
-  "daily_total_kwh": 735,
-  "monthly_total_kwh": 12793,
-  "lifetime_total_kwh": 1054459,
+  "daily_total_kwh": 872,
+  "monthly_total_kwh": 12930,
+  "lifetime_total_kwh": 1054596,
   "daily_environmental": {
-    "co2_avoided_kg": 735,
-    "trees_planted_lower": 8348,
-    "trees_planted_upper": 33394,
-    "households_powered": 0.21,
-    "km_driven_equivalent": 2927,
-    "km_flown_equivalent": 60,
-    "coal_saved_kg": 373,
-    "water_saved_litres": 1029
+    "co2_avoided_kg": 872,
+    "trees_planted_lower": 9905,
+    "trees_planted_upper": 39622,
+    "households_powered": 0.25,
+    "km_driven_equivalent": 3472,
+    "km_flown_equivalent": 71,
+    "coal_saved_kg": 443,
+    "water_saved_litres": 1220
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 12793,
-    "trees_planted_lower": 145369,
-    "trees_planted_upper": 581477,
-    "households_powered": 3.61,
-    "km_driven_equivalent": 50959,
-    "km_flown_equivalent": 1042,
-    "coal_saved_kg": 6499,
-    "water_saved_litres": 17910
+    "co2_avoided_kg": 12930,
+    "trees_planted_lower": 146926,
+    "trees_planted_upper": 587705,
+    "households_powered": 3.65,
+    "km_driven_equivalent": 51505,
+    "km_flown_equivalent": 1053,
+    "coal_saved_kg": 6568,
+    "water_saved_litres": 18101
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1054459,
-    "trees_planted_lower": 11982494,
-    "trees_planted_upper": 47929976,
-    "households_powered": 297.31,
-    "km_driven_equivalent": 4200481,
-    "km_flown_equivalent": 85866,
-    "coal_saved_kg": 535690,
-    "water_saved_litres": 1476243
+    "co2_avoided_kg": 1054596,
+    "trees_planted_lower": 11984051,
+    "trees_planted_upper": 47936203,
+    "households_powered": 297.35,
+    "km_driven_equivalent": 4201027,
+    "km_flown_equivalent": 85878,
+    "coal_saved_kg": 535759,
+    "water_saved_litres": 1476435
   }
 }
