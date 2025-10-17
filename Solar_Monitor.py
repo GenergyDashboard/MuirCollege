@@ -2,12 +2,13 @@ import re
 import os
 import json
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dt_time
 from pathlib import Path
 import subprocess
 import time
 from playwright.sync_api import Playwright, sync_playwright
 from dotenv import load_dotenv
+from suntime import Sun
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +19,12 @@ GITHUB_REPO = "MuirCollege"
 DATA_FILE = "solar_data.json"
 CSV_DOWNLOAD_PATH = "downloads"
 DATA_INTERVAL_MINUTES = 5
+
+# Location coordinates (set these to your location)
+# Example: Muir College, UCSD coordinates
+LATITUDE = 32.8801  # Replace with your latitude
+LONGITUDE = -117.2340  # Replace with your longitude
+SUNSET_OFFSET_MINUTES = 30  # Run this many minutes after sunset
 
 # Get credentials from environment variables
 SOLAR_EMAIL = os.getenv('SOLAR_EMAIL')
@@ -43,6 +50,50 @@ PARAMS = {
 
 # Persistent totals file
 TOTALS_FILE = "persistent_totals.json"
+LAST_RUN_FILE = "last_run.json"
+
+def get_sunset_time(lat, lon, date=None):
+    """Calculate sunset time for given coordinates and date"""
+    if date is None:
+        date = datetime.now()
+    
+    sun = Sun(lat, lon)
+    sunset = sun.get_local_sunset_time(date)
+    return sunset
+
+def should_run_today():
+    """Check if we should run today based on last run date and sunset time"""
+    now = datetime.now()
+    today_str = now.strftime('%Y-%m-%d')
+    
+    # Load last run info
+    if os.path.exists(LAST_RUN_FILE):
+        with open(LAST_RUN_FILE, 'r') as f:
+            last_run = json.load(f)
+            last_run_date = last_run.get('last_run_date', '')
+            
+            # Already ran today
+            if last_run_date == today_str:
+                return False, None
+    
+    # Calculate today's sunset + offset
+    sunset = get_sunset_time(LATITUDE, LONGITUDE)
+    run_time = sunset + timedelta(minutes=SUNSET_OFFSET_MINUTES)
+    
+    # Check if it's past the run time
+    if now >= run_time:
+        return True, run_time
+    
+    return False, run_time
+
+def mark_run_complete():
+    """Mark today's run as complete"""
+    now = datetime.now()
+    with open(LAST_RUN_FILE, 'w') as f:
+        json.dump({
+            'last_run_date': now.strftime('%Y-%m-%d'),
+            'last_run_timestamp': now.isoformat()
+        }, f, indent=2)
 
 def load_persistent_totals():
     """Load lifetime and monthly totals from file"""
@@ -82,14 +133,12 @@ def run_playwright(playwright: Playwright) -> str:
         page.wait_for_timeout(2000)
         
         print("  → Filling in credentials...")
-        # Use role-based selectors (more reliable)
         try:
             page.get_by_role("textbox", name="Email").click(timeout=10000)
             page.get_by_role("textbox", name="Email").fill(SOLAR_EMAIL)
             print("  ✓ Email filled using role selector")
         except Exception as e:
             print(f"  ⚠ Role selector failed, trying fallback: {e}")
-            # Fallback to multiple selectors
             email_selectors = [
                 'input[type="text"]',
                 'input[placeholder*="Mail" i]',
@@ -119,7 +168,6 @@ def run_playwright(playwright: Playwright) -> str:
             print("  ✓ Password filled using role selector")
         except Exception as e:
             print(f"  ⚠ Role selector failed, trying fallback: {e}")
-            # Fallback to multiple selectors
             password_selectors = [
                 'input[type="password"]',
                 'input[placeholder*="Pass" i]',
@@ -148,7 +196,6 @@ def run_playwright(playwright: Playwright) -> str:
             print("  ✓ Login button clicked using role selector")
         except Exception as e:
             print(f"  ⚠ Role selector failed, trying fallback: {e}")
-            # Fallback login button selectors
             login_selectors = [
                 'button:has-text("Log In")',
                 'button:has-text("Anmelden")',
@@ -178,7 +225,6 @@ def run_playwright(playwright: Playwright) -> str:
         print("  → Waiting for page to fully load...")
         page.wait_for_load_state("domcontentloaded", timeout=30000)
         
-        # Don't wait for networkidle on SPA - wait for specific element instead
         try:
             page.wait_for_load_state("networkidle", timeout=10000)
         except:
@@ -209,7 +255,6 @@ def run_playwright(playwright: Playwright) -> str:
         page.wait_for_timeout(5000)
         
         print("  → Waiting for insights page to fully load...")
-        # Don't wait for networkidle - wait for specific elements instead
         try:
             page.wait_for_load_state("networkidle", timeout=10000)
         except:
@@ -239,7 +284,6 @@ def run_playwright(playwright: Playwright) -> str:
             print(f"  ⚠ Could not set interval (will use default): {e}")
         
         print("  → Waiting for data to reload...")
-        # Don't wait for networkidle - just give it time to reload
         try:
             page.wait_for_load_state("networkidle", timeout=10000)
         except:
@@ -443,37 +487,30 @@ def push_to_github(data: dict):
         json_path = os.path.abspath(DATA_FILE)
         print(f"  → Writing JSON to: {json_path}")
         
-        # Write the JSON file
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
         
         print(f"  ✓ JSON file updated successfully")
         
-        # Verify it was written
         with open(json_path, 'r', encoding='utf-8') as f:
             written_data = json.load(f)
         
         written_timestamp = written_data.get('timestamp', 'UNKNOWN')
         print(f"  ✓ Timestamp: {written_timestamp}")
         
-        # Push to GitHub
         print(f"  → Pushing to GitHub...")
         
-        # Add only the solar data JSON (persistent_totals.json stays local)
         subprocess.run(['git', 'add', DATA_FILE], 
                       check=True, capture_output=True, text=True)
         
-        # Commit with timestamp
         commit_message = f"Update solar data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         subprocess.run(['git', 'commit', '-m', commit_message], 
                       check=True, capture_output=True, text=True)
         
-        # Push to remote (use -u flag first time to set upstream)
         try:
             result = subprocess.run(['git', 'push'], 
                                    check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError:
-            # If push fails, try setting upstream
             result = subprocess.run(['git', 'push', '--set-upstream', 'origin', 'main'], 
                                    check=True, capture_output=True, text=True)
         
@@ -481,7 +518,6 @@ def push_to_github(data: dict):
         print(f"  ✓ File ready for GitHub Pages to serve")
         
     except subprocess.CalledProcessError as e:
-        # Check if it's a "nothing to commit" error (which is fine)
         if "nothing to commit" in e.stdout or "nothing to commit" in e.stderr:
             print(f"  ℹ No changes to commit (data unchanged)")
         else:
@@ -490,50 +526,100 @@ def push_to_github(data: dict):
     except Exception as e:
         print(f"  ✗ Error writing/pushing JSON: {e}")
         raise
-    
+
 def main_loop():
-    """Main loop - runs every 5 minutes with auto-restart on error"""
-    print("☀️ Solar Monitor Started - Muir College Dashboard")
+    """Main loop - runs once daily after sunset"""
+    print("☀️ Solar Monitor Started - Daily Sunset Mode")
     print(f"Repository: {GITHUB_USERNAME}/{GITHUB_REPO}")
-    print(f"Checking every 5 minutes...\n")
+    print(f"Location: {LATITUDE}°, {LONGITUDE}°")
+    print(f"Runs daily {SUNSET_OFFSET_MINUTES} minutes after sunset\n")
     
     while True:
         try:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Fetching data...")
+            should_run, run_time = should_run_today()
+            now = datetime.now()
             
-            with sync_playwright() as playwright:
-                csv_file = run_playwright(playwright)
-            
-            data = parse_csv_data(csv_file)
-            
-            if data:
-                print(f"\n📊 Results:")
-                print(f"  Current Power: {data['current_power_w']:,} W".replace(',', ' '))
-                print(f"  Daily Total: {data['daily_total_kwh']:,} kWh".replace(',', ' '))
-                print(f"  Monthly Total: {data['monthly_total_kwh']:,} kWh".replace(',', ' '))
-                print(f"  Lifetime Total: {data['lifetime_total_kwh']:,} kWh".replace(',', ' '))
+            if should_run:
+                print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Running daily data fetch...")
                 
-                push_to_github(data)
-                print(f"\n✓ Update complete!\n")
+                with sync_playwright() as playwright:
+                    csv_file = run_playwright(playwright)
+                
+                data = parse_csv_data(csv_file)
+                
+                if data:
+                    print(f"\n📊 Results:")
+                    print(f"  Current Power: {data['current_power_w']:,} W".replace(',', ' '))
+                    print(f"  Daily Total: {data['daily_total_kwh']:,} kWh".replace(',', ' '))
+                    print(f"  Monthly Total: {data['monthly_total_kwh']:,} kWh".replace(',', ' '))
+                    print(f"  Lifetime Total: {data['lifetime_total_kwh']:,} kWh".replace(',', ' '))
+                    
+                    push_to_github(data)
+                    print(f"\n✓ Daily update complete!")
+                    
+                    # Mark as complete
+                    mark_run_complete()
+                else:
+                    print("✗ No data parsed\n")
+                
+                # Cleanup old files
+                csv_files = sorted(Path(CSV_DOWNLOAD_PATH).glob("*.csv"))
+                for old_file in csv_files[:-10]:
+                    old_file.unlink()
+                
+                screenshot_files = sorted(Path(".").glob("error_screenshot_*.png"))
+                for old_screenshot in screenshot_files[:-5]:
+                    old_screenshot.unlink()
+                
+                # Calculate tomorrow's run time
+                tomorrow = now + timedelta(days=1)
+                tomorrow_sunset = get_sunset_time(LATITUDE, LONGITUDE, tomorrow)
+                tomorrow_run = tomorrow_sunset + timedelta(minutes=SUNSET_OFFSET_MINUTES)
+                
+                wait_seconds = (tomorrow_run - now).total_seconds()
+                wait_hours = wait_seconds / 3600
+                
+                print(f"\n⏰ Next run: {tomorrow_run.strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"   (in {wait_hours:.1f} hours)")
+                print("=" * 60 + "\n")
+                
+                time.sleep(wait_seconds)
+                
             else:
-                print("✗ No data parsed\n")
-            
-            csv_files = sorted(Path(CSV_DOWNLOAD_PATH).glob("*.csv"))
-            for old_file in csv_files[:-10]:
-                old_file.unlink()
-            
-            screenshot_files = sorted(Path(".").glob("error_screenshot_*.png"))
-            for old_screenshot in screenshot_files[:-5]:
-                old_screenshot.unlink()
-            
-            print(f"Waiting 5 minutes until next check...")
-            print("=" * 60 + "\n")
-            time.sleep(300)
+                if run_time:
+                    wait_seconds = (run_time - now).total_seconds()
+                    if wait_seconds > 0:
+                        wait_minutes = wait_seconds / 60
+                        print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Waiting for sunset...")
+                        print(f"  Sunset time: {run_time.strftime('%H:%M:%S')}")
+                        print(f"  Time until run: {wait_minutes:.1f} minutes")
+                        print("=" * 60 + "\n")
+                        
+                        # Check every 5 minutes
+                        time.sleep(min(300, max(60, wait_seconds)))
+                    else:
+                        time.sleep(60)
+                else:
+                    # Already ran today, wait until tomorrow
+                    tomorrow = now + timedelta(days=1)
+                    tomorrow_sunset = get_sunset_time(LATITUDE, LONGITUDE, tomorrow)
+                    tomorrow_run = tomorrow_sunset + timedelta(minutes=SUNSET_OFFSET_MINUTES)
+                    
+                    wait_seconds = (tomorrow_run - now).total_seconds()
+                    wait_hours = wait_seconds / 3600
+                    
+                    print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Already ran today")
+                    print(f"  Next run: {tomorrow_run.strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"  (in {wait_hours:.1f} hours)")
+                    print("=" * 60 + "\n")
+                    
+                    # Sleep for a few hours, then check again
+                    time.sleep(min(3600, wait_seconds))
             
         except Exception as e:
             print(f"✗ Error occurred: {e}")
-            print(f"⏳ Restarting immediately...\n")
-            time.sleep(5)
+            print(f"⏳ Retrying in 5 minutes...\n")
+            time.sleep(300)
 
 if __name__ == "__main__":
     main_loop()
