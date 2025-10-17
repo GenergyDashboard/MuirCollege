@@ -2,6 +2,7 @@ import re
 import os
 import json
 import csv
+import sys
 from datetime import datetime, timedelta, time as dt_time
 from pathlib import Path
 import subprocess
@@ -61,8 +62,11 @@ def get_sunset_time(lat, lon, date=None):
     sunset = sun.get_local_sunset_time(date)
     return sunset
 
-def should_run_today():
+def should_run_today(force=False):
     """Check if we should run today based on last run date and sunset time"""
+    if force:
+        return True, datetime.now()
+    
     now = datetime.now()
     today_str = now.strftime('%Y-%m-%d')
     
@@ -326,7 +330,7 @@ def run_playwright(playwright: Playwright) -> str:
         browser.close()
 
 def parse_csv_data(filepath: str) -> dict:
-    """Parse CSV and calculate all metrics with proper kWh calculation"""
+    """Parse CSV and calculate all metrics with proper kWh calculation - FIXED VERSION"""
     print("  → Parsing CSV data...")
     with open(filepath, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
@@ -354,6 +358,7 @@ def parse_csv_data(filepath: str) -> dict:
     
     print(f"  → CSV columns: {list(rows[0].keys())}")
     
+    # Find current power from latest row
     for row in reversed(rows):
         try:
             col_b_key = list(row.keys())[1] if len(row.keys()) > 1 else None
@@ -381,13 +386,18 @@ def parse_csv_data(filepath: str) -> dict:
         print(f"  ⚠ No valid data found in column B")
         latest_with_data = rows[-1]
     
+    # Calculate TODAY'S production only
     daily_total_kwh = 0
+    today_rows_count = 0
+    
+    print(f"  → Filtering for TODAY's data (after {today_start})...")
     
     for row in rows:
         try:
             timestamp = None
             timestamp_str = ""
             
+            # Find timestamp column
             for key in row.keys():
                 if key and ('time' in key.lower() or 'date' in key.lower()):
                     timestamp_str = row[key]
@@ -396,6 +406,7 @@ def parse_csv_data(filepath: str) -> dict:
             if not timestamp_str:
                 timestamp_str = list(row.values())[0]
             
+            # Parse timestamp
             for fmt in ['%d/%m/%Y %H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%m/%d/%Y %H:%M']:
                 try:
                     timestamp = datetime.strptime(timestamp_str, fmt)
@@ -406,45 +417,55 @@ def parse_csv_data(filepath: str) -> dict:
             if not timestamp:
                 continue
             
-            power_w = 0
-            for key in row.keys():
-                if key and ('production' in key.lower() or 'power' in key.lower() or 'kwh' in key.lower()):
-                    try:
-                        value_str = str(row[key]).replace('kWh', '').replace('kwh', '').replace('W', '').replace('w', '').replace(',', '').strip()
-                        if value_str:
-                            power_w = float(value_str)
-                            break
-                    except:
-                        pass
-            
-            energy_kwh = power_w / 1000.0
-            
+            # ONLY process rows from TODAY
             if timestamp >= today_start:
+                power_w = 0
+                for key in row.keys():
+                    if key and ('production' in key.lower() or 'power' in key.lower() or 'kwh' in key.lower()):
+                        try:
+                            value_str = str(row[key]).replace('kWh', '').replace('kwh', '').replace('W', '').replace('w', '').replace(',', '').strip()
+                            if value_str:
+                                power_w = float(value_str)
+                                break
+                        except:
+                            pass
+                
+                # Convert W to kWh based on interval (5 minutes = 1/12 of an hour)
+                energy_kwh = (power_w / 1000.0) * (DATA_INTERVAL_MINUTES / 60.0)
                 daily_total_kwh += energy_kwh
+                today_rows_count += 1
                 
         except Exception as e:
             continue
     
-    print(f"  → Daily total (today): {daily_total_kwh:.2f} kWh")
+    print(f"  → Found {today_rows_count} rows from TODAY")
+    print(f"  → Daily total (today only): {daily_total_kwh:.2f} kWh")
     
+    # Handle day/month transitions
     if is_new_day:
         persistent['lifetime_total_kwh'] += persistent['last_daily_total']
-        print(f"  → New day detected! Added {persistent['last_daily_total']:.2f} kWh to lifetime")
+        persistent['month_start_total_kwh'] += persistent['last_daily_total']
+        print(f"  → New day detected! Added {persistent['last_daily_total']:.2f} kWh to lifetime and monthly")
     
     if is_new_month:
-        persistent['month_start_total_kwh'] = 0
+        # Don't reset month_start, we already added yesterday's total above
         persistent['current_month'] = now.month
         persistent['current_year'] = now.year
+        persistent['month_start_total_kwh'] = 0  # Reset for new month
         print(f"  → New month detected! Reset monthly total")
     
+    # Update persistent totals
     persistent['last_daily_total'] = daily_total_kwh
     persistent['last_update_date'] = today_str
     
+    # Calculate cumulative totals
     lifetime_kwh = persistent['lifetime_total_kwh'] + daily_total_kwh
     monthly_kwh = persistent['month_start_total_kwh'] + daily_total_kwh
     
     save_persistent_totals(persistent)
     
+    print(f"  → Month start total: {persistent['month_start_total_kwh']:.2f} kWh")
+    print(f"  → Today's production: {daily_total_kwh:.2f} kWh")
     print(f"  → Monthly total: {monthly_kwh:.2f} kWh")
     print(f"  → Lifetime total: {lifetime_kwh:.2f} kWh")
     
@@ -552,10 +573,45 @@ def push_to_github(data: dict):
 
 def main_loop():
     """Main loop - runs once daily after sunset"""
+    # Check for --force flag
+    force_run = '--force' in sys.argv or '-f' in sys.argv
+    
+    if force_run:
+        print("🔧 FORCE RUN MODE - Running immediately for testing\n")
+        print("=" * 60)
+        
+        try:
+            with sync_playwright() as playwright:
+                csv_file = run_playwright(playwright)
+            
+            data = parse_csv_data(csv_file)
+            
+            if data:
+                print(f"\n📊 Results:")
+                print(f"  Current Power: {data['current_power_w']:,} W".replace(',', ' '))
+                print(f"  Daily Total: {data['daily_total_kwh']:,} kWh".replace(',', ' '))
+                print(f"  Monthly Total: {data['monthly_total_kwh']:,} kWh".replace(',', ' '))
+                print(f"  Lifetime Total: {data['lifetime_total_kwh']:,} kWh".replace(',', ' '))
+                
+                push_to_github(data)
+                print(f"\n✅ Force run complete!")
+                
+                # Mark as complete
+                mark_run_complete()
+            else:
+                print("✗ No data parsed\n")
+            
+        except Exception as e:
+            print(f"✗ Error during force run: {e}")
+        
+        return
+    
+    # Normal sunset mode
     print("☀️ Solar Monitor Started - Daily Sunset Mode")
     print(f"Repository: {GITHUB_USERNAME}/{GITHUB_REPO}")
     print(f"Location: {LATITUDE}°, {LONGITUDE}°")
-    print(f"Runs daily {SUNSET_OFFSET_MINUTES} minutes after sunset\n")
+    print(f"Runs daily {SUNSET_OFFSET_MINUTES} minutes after sunset")
+    print(f"Tip: Use 'python Solar_Monitor.py --force' to run immediately\n")
     
     while True:
         try:
@@ -578,7 +634,7 @@ def main_loop():
                     print(f"  Lifetime Total: {data['lifetime_total_kwh']:,} kWh".replace(',', ' '))
                     
                     push_to_github(data)
-                    print(f"\n✓ Daily update complete!")
+                    print(f"\n✅ Daily update complete!")
                     
                     # Mark as complete
                     mark_run_complete()
