@@ -1,38 +1,38 @@
 {
-  "timestamp": "2025-10-17T12:48:57.282602",
+  "timestamp": "2025-10-17T12:56:53.666959",
   "current_power_w": 99336,
   "current_power_kwh": 99.34,
-  "daily_total_kwh": 7813,
-  "monthly_total_kwh": 19871,
-  "lifetime_total_kwh": 1061538,
+  "daily_total_kwh": 8063,
+  "monthly_total_kwh": 20121,
+  "lifetime_total_kwh": 1061788,
   "daily_environmental": {
-    "co2_avoided_kg": 7813,
-    "trees_planted_lower": 88789,
-    "trees_planted_upper": 355156,
-    "households_powered": 2.2,
-    "km_driven_equivalent": 31125,
-    "km_flown_equivalent": 636,
-    "coal_saved_kg": 3969,
-    "water_saved_litres": 10939
+    "co2_avoided_kg": 8063,
+    "trees_planted_lower": 91628,
+    "trees_planted_upper": 366511,
+    "households_powered": 2.27,
+    "km_driven_equivalent": 32120,
+    "km_flown_equivalent": 657,
+    "coal_saved_kg": 4096,
+    "water_saved_litres": 11289
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 19871,
-    "trees_planted_lower": 225810,
-    "trees_planted_upper": 903240,
-    "households_powered": 5.6,
-    "km_driven_equivalent": 79158,
-    "km_flown_equivalent": 1618,
-    "coal_saved_kg": 10095,
-    "water_saved_litres": 27820
+    "co2_avoided_kg": 20121,
+    "trees_planted_lower": 228649,
+    "trees_planted_upper": 914594,
+    "households_powered": 5.67,
+    "km_driven_equivalent": 80153,
+    "km_flown_equivalent": 1638,
+    "coal_saved_kg": 10222,
+    "water_saved_litres": 28170
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1061538,
-    "trees_planted_lower": 12062935,
-    "trees_planted_upper": 48251738,
-    "households_powered": 299.31,
-    "km_driven_equivalent": 4228680,
-    "km_flown_equivalent": 86443,
-    "coal_saved_kg": 539286,
-    "water_saved_litres": 1486154
+    "co2_avoided_kg": 1061788,
+    "trees_planted_lower": 12065773,
+    "trees_planted_upper": 48263093,
+    "households_powered": 299.38,
+    "km_driven_equivalent": 4229675,
+    "km_flown_equivalent": 86463,
+    "coal_saved_kg": 539413,
+    "water_saved_litres": 1486503
   }
 }
