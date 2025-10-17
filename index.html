@@ -112,6 +112,103 @@
             margin-top: 15px;
         }
         
+        .info-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px 20px;
+            color: #FFD700;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-toggle:hover {
+            background: #222;
+            border-color: #FFD700;
+            transform: translateY(-2px);
+        }
+        
+        .info-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .info-panel.show {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .info-panel h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #FFD700;
+            padding-bottom: 10px;
+        }
+        
+        .info-section {
+            margin-bottom: 25px;
+        }
+        
+        .info-section h3 {
+            color: #FFA500;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .calculation-item {
+            background: #0f0f0f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 3px solid #FFD700;
+        }
+        
+        .calculation-item strong {
+            color: #FFD700;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+        
+        .calculation-item p {
+            color: #aaa;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        
+        .formula {
+            background: #1a1a1a;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            color: #4ade80;
+            margin-top: 8px;
+            border: 1px solid #2a2a2a;
+        }
+        
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -154,28 +251,6 @@
         .card-unit {
             font-size: 0.9em;
             color: #666;
-        }
-        
-        .current-power {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #000;
-            grid-column: span 2;
-        }
-        
-        .current-power .card-title,
-        .current-power .card-unit {
-            color: rgba(0, 0, 0, 0.7);
-        }
-        
-        .current-power .card-value {
-            color: #000;
-            font-size: 3.5em;
-        }
-        
-        @media (max-width: 768px) {
-            .current-power {
-                grid-column: span 1;
-            }
         }
         
         .env-sections {
@@ -316,6 +391,12 @@
         }
         
         @media (max-width: 768px) {
+            .info-toggle {
+                position: static;
+                margin: 20px auto;
+                width: fit-content;
+            }
+            
             .header h1 {
                 font-size: 1.8em;
             }
@@ -343,6 +424,11 @@
 </head>
 <body>
     <div class="container">
+        <button class="info-toggle" onclick="toggleInfo()">
+            <span>ℹ️</span>
+            <span id="toggleText">How Calculations Work</span>
+        </button>
+        
         <div class="header">
             <div class="animated-sun">
                 <div class="sun-circle"></div>
@@ -352,17 +438,83 @@
             <div class="last-updated" id="lastUpdated">Loading...</div>
         </div>
         
+        <div id="infoPanel" class="info-panel">
+            <h2>📐 How We Calculate Environmental Impact</h2>
+            
+            <div class="info-section">
+                <h3>🔋 Energy Totals</h3>
+                <div class="calculation-item">
+                    <strong>Daily Total</strong>
+                    <p>Calculated by summing all 5-minute power readings from today's CSV data, converting watts to kilowatt-hours.</p>
+                    <div class="formula">Energy (kWh) = Σ (Power in Watts / 1000) × (5 minutes / 60)</div>
+                </div>
+                <div class="calculation-item">
+                    <strong>Monthly Total</strong>
+                    <p>Accumulated from daily totals throughout the current month. Resets to zero at the start of each new month.</p>
+                </div>
+                <div class="calculation-item">
+                    <strong>Lifetime Total</strong>
+                    <p>Started at 1,063,460 kWh (historical baseline) and grows by adding each day's total. Never resets.</p>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <h3>🌍 Environmental Parameters</h3>
+                <div class="calculation-item">
+                    <strong>💨 CO₂ Avoided</strong>
+                    <p>Amount of carbon dioxide emissions prevented by using solar instead of grid electricity.</p>
+                    <div class="formula">CO₂ Avoided = Energy (kWh) × 1 kg CO₂/kWh</div>
+                </div>
+                <div class="calculation-item">
+                    <strong>🌳 Trees Equivalent</strong>
+                    <p>Number of trees needed to absorb the same CO₂. Based on 250-1000 trees per hectare absorbing 22 kg CO₂/year each.</p>
+                    <div class="formula">Trees = CO₂ Avoided / (22 kg/tree/year ÷ Trees per hectare)</div>
+                </div>
+                <div class="calculation-item">
+                    <strong>🏠 Households Powered</strong>
+                    <p>Years an average household could run on this energy, based on 3,546.63 kWh per household per year.</p>
+                    <div class="formula">Household Years = Energy (kWh) / 3,546.63 kWh/year</div>
+                </div>
+                <div class="calculation-item">
+                    <strong>🚗 Driving Equivalent</strong>
+                    <p>Distance you could drive a car that would emit the same CO₂, at 0.251 kg CO₂ per km.</p>
+                    <div class="formula">Distance = CO₂ Avoided / 0.251033 kg/km</div>
+                </div>
+                <div class="calculation-item">
+                    <strong>✈️ Flying Equivalent</strong>
+                    <p>Distance you could fly that would emit the same CO₂, at 12.28 kg CO₂ per km flown.</p>
+                    <div class="formula">Distance = CO₂ Avoided / 12.280237 kg/km</div>
+                </div>
+                <div class="calculation-item">
+                    <strong>⚫ Coal Saved</strong>
+                    <p>Amount of coal that would be needed to generate the same electricity, at 0.508 kg coal per kWh.</p>
+                    <div class="formula">Coal Saved = Energy (kWh) × 0.50802304 kg/kWh</div>
+                </div>
+                <div class="calculation-item">
+                    <strong>💧 Water Saved</strong>
+                    <p>Water saved by not using conventional power plants (which need cooling), at 1.4 litres per kWh.</p>
+                    <div class="formula">Water Saved = Energy (kWh) × 1.4 litres/kWh</div>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <h3>📊 Data Sources</h3>
+                <div class="calculation-item">
+                    <strong>Update Frequency</strong>
+                    <p>Data is fetched from the Genergy solar monitoring system every 5 minutes and automatically pushed to this dashboard.</p>
+                </div>
+                <div class="calculation-item">
+                    <strong>Data Persistence</strong>
+                    <p>All totals are stored locally in persistent_totals.json to maintain accuracy across system restarts and ensure cumulative values are preserved.</p>
+                </div>
+            </div>
+        </div>
+        
         <div id="loading" class="loading">Loading solar data...</div>
         <div id="error" class="error" style="display: none;"></div>
         
         <div id="content" style="display: none;">
             <div class="grid">
-                <div class="card current-power">
-                    <div class="card-title">⚡ Current Power</div>
-                    <div class="card-value" id="currentPower">0</div>
-                    <div class="card-unit">Watts</div>
-                </div>
-                
                 <div class="card">
                     <div class="card-title">📅 Today's Total</div>
                     <div class="card-value" id="dailyTotal">0</div>
@@ -412,6 +564,18 @@
     
     <script>
         const DATA_URL = 'solar_data.json';
+        
+        function toggleInfo() {
+            const panel = document.getElementById('infoPanel');
+            const text = document.getElementById('toggleText');
+            if (panel.classList.contains('show')) {
+                panel.classList.remove('show');
+                text.textContent = 'How Calculations Work';
+            } else {
+                panel.classList.add('show');
+                text.textContent = 'Hide Calculations';
+            }
+        }
         
         const tooltipDescriptions = {
             'co2': 'Amount of CO₂ emissions prevented by using solar power instead of conventional electricity from the grid.',
@@ -493,7 +657,6 @@
                 
                 const data = await response.json();
                 
-                document.getElementById('currentPower').textContent = formatNumber(data.current_power_w);
                 document.getElementById('dailyTotal').textContent = formatNumber(data.daily_total_kwh);
                 document.getElementById('monthlyTotal').textContent = formatNumber(data.monthly_total_kwh);
                 document.getElementById('lifetimeTotal').textContent = formatNumber(data.lifetime_total_kwh);
