@@ -331,7 +331,7 @@ def run_playwright(playwright: Playwright) -> str:
 
 def parse_csv_data(filepath: str) -> dict:
     """Parse CSV and calculate all metrics with proper kWh calculation - FIXED VERSION"""
-    print("  → Parsing CSV data...")
+    print("  ↳ Parsing CSV data...")
     with open(filepath, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
         rows = list(reader)
@@ -340,7 +340,7 @@ def parse_csv_data(filepath: str) -> dict:
         print("  ✗ No rows in CSV")
         return None
     
-    print(f"  → Found {len(rows)} rows")
+    print(f"  ↳ Found {len(rows)} rows")
     
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -356,7 +356,7 @@ def parse_csv_data(filepath: str) -> dict:
     current_power_w = 0
     latest_with_data = None
     
-    print(f"  → CSV columns: {list(rows[0].keys())}")
+    print(f"  ↳ CSV columns: {list(rows[0].keys())}")
     
     # Find current power from latest row
     for row in reversed(rows):
@@ -372,12 +372,12 @@ def parse_csv_data(filepath: str) -> dict:
                         if power_value > 0 and power_value <= 100000:
                             current_power_w = power_value
                             latest_with_data = row
-                            print(f"  → Found latest data in column '{col_b_key}': {current_power_w} W")
+                            print(f"  ↳ Found latest data in column '{col_b_key}': {current_power_w} W")
                             break
                     except:
                         pass
         except Exception as e:
-            print(f"  → Could not parse row: {e}")
+            print(f"  ↳ Could not parse row: {e}")
             continue
     
     if latest_with_data:
@@ -386,12 +386,8 @@ def parse_csv_data(filepath: str) -> dict:
         print(f"  ⚠ No valid data found in column B")
         latest_with_data = rows[-1]
     
-    # Calculate TODAY'S production only
-    daily_total_kwh = 0
-    today_rows_count = 0
-    
-    print(f"  → Filtering for TODAY's data (after {today_start})...")
-    
+    # Parse all rows with timestamps and power values
+    parsed_rows = []
     for row in rows:
         try:
             timestamp = None
@@ -417,42 +413,65 @@ def parse_csv_data(filepath: str) -> dict:
             if not timestamp:
                 continue
             
-            # ONLY process rows from TODAY
-            if timestamp >= today_start:
-                power_w = 0
-                for key in row.keys():
-                    if key and ('production' in key.lower() or 'power' in key.lower() or 'kwh' in key.lower()):
-                        try:
-                            value_str = str(row[key]).replace('kWh', '').replace('kwh', '').replace('W', '').replace('w', '').replace(',', '').strip()
-                            if value_str:
-                                power_w = float(value_str)
-                                break
-                        except:
-                            pass
-                
-                # Convert W to kWh based on interval (5 minutes = 1/12 of an hour)
-                energy_kwh = (power_w / 1000.0) * (DATA_INTERVAL_MINUTES / 60.0)
-                daily_total_kwh += energy_kwh
-                today_rows_count += 1
-                
+            # Extract power value from column B (Production AC)
+            power_w = 0
+            col_b_key = list(row.keys())[1] if len(row.keys()) > 1 else None
+            
+            if col_b_key:
+                try:
+                    value_str = str(row[col_b_key]).replace('kWh', '').replace('kwh', '').replace('W', '').replace('w', '').replace(',', '').strip()
+                    if value_str and value_str.lower() not in ['none', 'null', '']:
+                        power_w = float(value_str)
+                except:
+                    pass
+            
+            # Only keep rows from TODAY with valid power > 0
+            if timestamp >= today_start and power_w > 0:
+                parsed_rows.append({
+                    'timestamp': timestamp,
+                    'power_w': power_w
+                })
+        
         except Exception as e:
             continue
     
-    print(f"  → Found {today_rows_count} rows from TODAY")
-    print(f"  → Daily total (today only): {daily_total_kwh:.2f} kWh")
+    print(f"  ↳ Found {len(parsed_rows)} valid data points from TODAY")
+    
+    # Calculate total energy using trapezoidal rule (average of consecutive readings)
+    daily_total_kwh = 0
+    
+    if len(parsed_rows) > 1:
+        for i in range(len(parsed_rows) - 1):
+            current_power = parsed_rows[i]['power_w']
+            next_power = parsed_rows[i + 1]['power_w']
+            
+            # Average power over this interval
+            avg_power = (current_power + next_power) / 2
+            
+            # Time difference in hours (should be ~5 minutes = 0.0833 hours)
+            time_diff = (parsed_rows[i + 1]['timestamp'] - parsed_rows[i]['timestamp']).total_seconds() / 3600
+            
+            # Energy = Power (kW) × Time (hours)
+            energy_kwh = (avg_power / 1000.0) * time_diff
+            daily_total_kwh += energy_kwh
+    
+    elif len(parsed_rows) == 1:
+        # Only one reading - estimate using half the interval
+        daily_total_kwh = (parsed_rows[0]['power_w'] / 1000.0) * (DATA_INTERVAL_MINUTES / 60.0 / 2)
+    
+    print(f"  ↳ Calculated daily total: {daily_total_kwh:.2f} kWh from {len(parsed_rows)} data points")
     
     # Handle day/month transitions
     if is_new_day:
         persistent['lifetime_total_kwh'] += persistent['last_daily_total']
         persistent['month_start_total_kwh'] += persistent['last_daily_total']
-        print(f"  → New day detected! Added {persistent['last_daily_total']:.2f} kWh to lifetime and monthly")
+        print(f"  ↳ New day detected! Added {persistent['last_daily_total']:.2f} kWh to lifetime and monthly")
     
     if is_new_month:
-        # Don't reset month_start, we already added yesterday's total above
         persistent['current_month'] = now.month
         persistent['current_year'] = now.year
-        persistent['month_start_total_kwh'] = 0  # Reset for new month
-        print(f"  → New month detected! Reset monthly total")
+        persistent['month_start_total_kwh'] = 0
+        print(f"  ↳ New month detected! Reset monthly total")
     
     # Update persistent totals
     persistent['last_daily_total'] = daily_total_kwh
@@ -464,10 +483,10 @@ def parse_csv_data(filepath: str) -> dict:
     
     save_persistent_totals(persistent)
     
-    print(f"  → Month start total: {persistent['month_start_total_kwh']:.2f} kWh")
-    print(f"  → Today's production: {daily_total_kwh:.2f} kWh")
-    print(f"  → Monthly total: {monthly_kwh:.2f} kWh")
-    print(f"  → Lifetime total: {lifetime_kwh:.2f} kWh")
+    print(f"  ↳ Month start total: {persistent['month_start_total_kwh']:.2f} kWh")
+    print(f"  ↳ Today's production: {daily_total_kwh:.2f} kWh")
+    print(f"  ↳ Monthly total: {monthly_kwh:.2f} kWh")
+    print(f"  ↳ Lifetime total: {lifetime_kwh:.2f} kWh")
     
     def calc_environmental_impact(kwh):
         co2_avoided = kwh * PARAMS["kg_co2_per_kwh"]
