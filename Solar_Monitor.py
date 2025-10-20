@@ -619,6 +619,12 @@ def push_to_github(data: dict):
                 with open(json_path, 'r', encoding='utf-8') as f:
                     existing_data = json.load(f)
                 
+                # DEBUG: Show what we're comparing
+                print(f"  🔍 Existing daily_total_kwh: {existing_data.get('daily_total_kwh')}")
+                print(f"  🔍 New daily_total_kwh: {data.get('daily_total_kwh')}")
+                print(f"  🔍 Existing monthly_total_kwh: {existing_data.get('monthly_total_kwh')}")
+                print(f"  🔍 New monthly_total_kwh: {data.get('monthly_total_kwh')}")
+                
                 # Compare data (excluding timestamp for comparison)
                 existing_copy = existing_data.copy()
                 new_copy = data.copy()
@@ -626,87 +632,124 @@ def push_to_github(data: dict):
                 new_copy.pop('timestamp', None)
                 
                 if existing_copy == new_copy:
-                    print(f"  ℹ Data unchanged (only timestamp differs)")
+                    print(f"  ⚠ Data unchanged (only timestamp differs)")
                     needs_update = False
-            except:
-                pass
+                else:
+                    print(f"  ✓ Data HAS changed - update needed")
+            except Exception as e:
+                print(f"  ⚠ Error comparing files: {e}")
+                needs_update = True
+        else:
+            print(f"  ℹ No existing file - will create new")
         
-        # Write the file
+        # ALWAYS write the file to ensure it's updated
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
         
-        print(f"  ✓ JSON file updated successfully")
+        print(f"  ✓ JSON file written successfully")
         
+        # Verify what was written
         with open(json_path, 'r', encoding='utf-8') as f:
             written_data = json.load(f)
         
         written_timestamp = written_data.get('timestamp', 'UNKNOWN')
-        print(f"  ✓ Timestamp: {written_timestamp}")
+        print(f"  ✓ Written timestamp: {written_timestamp}")
+        print(f"  ✓ Written daily_total_kwh: {written_data.get('daily_total_kwh')}")
+        
+        # Check if file is in gitignore
+        gitignore_result = subprocess.run(['git', 'check-ignore', DATA_FILE], 
+                                         capture_output=True, text=True)
+        if gitignore_result.returncode == 0:
+            print(f"  ⚠️ WARNING: {DATA_FILE} is in .gitignore and will NOT be committed!")
+            print(f"  ↳ Remove it from .gitignore to track changes")
+            return
+        else:
+            print(f"  ✓ {DATA_FILE} is not in .gitignore")
         
         if not needs_update:
-            print(f"  ℹ Skipping git push (no significant changes)")
-            return
+            print(f"  ℹ Data unchanged, but forcing git operations to ensure sync...")
         
         print(f"  → Pushing to GitHub...")
         
         # Pull first to sync with remote changes
         try:
             print(f"  → Pulling latest changes from remote...")
-            # First, stash any uncommitted changes
-            subprocess.run(['git', 'stash'], capture_output=True, text=True, timeout=10)
-            
-            # Then pull with rebase
             result = subprocess.run(['git', 'pull', 'origin', 'main', '--rebase'], 
                                   capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
                 print(f"  ✓ Successfully synced with remote")
             else:
                 print(f"  ⚠ Pull warning: {result.stderr}")
-                # If pull fails, try a hard reset
-                subprocess.run(['git', 'reset', '--hard', 'origin/main'], 
-                             capture_output=True, text=True, timeout=10)
-                print(f"  ↳ Performed hard reset to remote main")
         except subprocess.TimeoutExpired:
             print(f"  ⚠ Pull timeout, continuing anyway...")
-        except subprocess.CalledProcessError as e:
-            print(f"  ⚠ Pull had issues, but continuing: {e.stderr}")
+        except Exception as e:
+            print(f"  ⚠ Pull error: {e}")
         
-        # Add the data file
-        subprocess.run(['git', 'add', DATA_FILE], 
-                      check=True, capture_output=True, text=True)
+        # Add the data file - use -f to force add even if in gitignore
+        add_result = subprocess.run(['git', 'add', DATA_FILE], 
+                      capture_output=True, text=True)
+        print(f"  → Git add return code: {add_result.returncode}")
+        if add_result.stderr:
+            print(f"  → Git add stderr: {add_result.stderr}")
         
-        # Check git status first
-        status_result = subprocess.run(['git', 'status', '--porcelain'], 
+        # Check git status with verbose output
+        status_result = subprocess.run(['git', 'status', '--porcelain', DATA_FILE], 
                                       capture_output=True, text=True, timeout=10)
-        print(f"  → Git status output: {status_result.stdout.strip() if status_result.stdout.strip() else 'No changes detected'}")
+        print(f"  → Git status for {DATA_FILE}: '{status_result.stdout.strip()}'")
+        
+        # Also check overall status
+        status_all = subprocess.run(['git', 'status', '--porcelain'], 
+                                   capture_output=True, text=True, timeout=10)
+        print(f"  → Git status (all files):")
+        for line in status_all.stdout.strip().split('\n'):
+            if line:
+                print(f"     {line}")
         
         # Check if there are actual changes to commit
         if not status_result.stdout.strip():
-            print(f"  ℹ No changes detected by git (file unchanged)")
+            print(f"  ⚠ No changes detected by git for {DATA_FILE}")
+            
+            # Try to see what git thinks about the file
+            diff_result = subprocess.run(['git', 'diff', DATA_FILE], 
+                                        capture_output=True, text=True)
+            if diff_result.stdout:
+                print(f"  → Git diff output (first 500 chars):")
+                print(f"     {diff_result.stdout[:500]}")
+            else:
+                print(f"  → Git diff shows no changes")
+            
+            # Check if file is tracked
+            ls_result = subprocess.run(['git', 'ls-files', DATA_FILE], 
+                                      capture_output=True, text=True)
+            if ls_result.stdout.strip():
+                print(f"  ✓ File IS tracked by git")
+            else:
+                print(f"  ⚠ File is NOT tracked by git - adding it...")
+                subprocess.run(['git', 'add', '-f', DATA_FILE], 
+                             capture_output=True, text=True)
+            
             return
         
         # Commit changes
         commit_message = f"Update solar data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        try:
-            result = subprocess.run(['git', 'commit', '-m', commit_message], 
-                          capture_output=True, text=True)
-            
+        result = subprocess.run(['git', 'commit', '-m', commit_message], 
+                      capture_output=True, text=True)
+        
+        print(f"  → Commit return code: {result.returncode}")
+        if result.stdout:
             print(f"  → Commit stdout: {result.stdout.strip()}")
+        if result.stderr:
             print(f"  → Commit stderr: {result.stderr.strip()}")
-            print(f"  → Commit return code: {result.returncode}")
-            
-            if result.returncode != 0:
-                if "nothing to commit" in result.stdout or "nothing to commit" in result.stderr or "no changes added" in result.stderr:
-                    print(f"  ℹ No changes to commit (data unchanged)")
-                    return
-                else:
-                    print(f"  ⚠ Commit warning: {result.stderr}")
-                    return
+        
+        if result.returncode != 0:
+            if "nothing to commit" in result.stdout or "nothing to commit" in result.stderr:
+                print(f"  ℹ Nothing to commit")
+                return
             else:
-                print(f"  ✓ Changes committed")
-        except subprocess.CalledProcessError as e:
-            print(f"  ⚠ Commit error: {e.stderr}")
-            return
+                print(f"  ⚠ Commit failed")
+                return
+        else:
+            print(f"  ✓ Changes committed")
         
         # Push to remote
         try:
@@ -714,26 +757,17 @@ def push_to_github(data: dict):
                                    capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
                 print(f"  ✓ Pushed to GitHub successfully")
-                print(f"  → Push stdout: {result.stdout.strip()}")
             else:
                 print(f"  ⚠ Push failed: {result.stderr}")
-                # Try with set-upstream
-                result = subprocess.run(['git', 'push', '--set-upstream', 'origin', 'main'], 
-                                       capture_output=True, text=True, timeout=30)
-                if result.returncode == 0:
-                    print(f"  ✓ Pushed to GitHub successfully (set upstream)")
-                else:
-                    print(f"  ⚠ Push with set-upstream failed: {result.stderr}")
         except subprocess.TimeoutExpired:
             print(f"  ⚠ Push timeout")
         
-        print(f"  ✓ File ready for GitHub Pages to serve")
+        print(f"  ✓ GitHub sync complete")
         
-    except subprocess.CalledProcessError as e:
-        print(f"  ✗ Git error: {e.stderr}")
-        raise
     except Exception as e:
-        print(f"  ✗ Error writing/pushing JSON: {e}")
+        print(f"  ✗ Error in push_to_github: {e}")
+        import traceback
+        traceback.print_exc()
         raise
 
 def main_loop():
