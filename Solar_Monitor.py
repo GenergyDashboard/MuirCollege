@@ -52,6 +52,7 @@ PARAMS = {
 # Persistent totals file
 TOTALS_FILE = "persistent_totals.json"
 LAST_RUN_FILE = "last_run.json"
+LATEST_TIMESTAMP_FILE = "latest_csv_timestamp.json"
 
 def get_sunset_time(lat, lon, date=None):
     """Calculate sunset time for given coordinates and date"""
@@ -102,23 +103,73 @@ def mark_run_complete():
 def load_persistent_totals():
     """Load lifetime and monthly totals from file"""
     if os.path.exists(TOTALS_FILE):
-        with open(TOTALS_FILE, 'r') as f:
-            return json.load(f)
-    else:
-        now = datetime.now()
-        return {
-            "lifetime_total_kwh": 1053724.803,
-            "month_start_total_kwh": 12057.838,
-            "current_month": now.month,
-            "current_year": now.year,
-            "last_daily_total": 0,
-            "last_update_date": now.strftime('%Y-%m-%d')
-        }
+        try:
+            with open(TOTALS_FILE, 'r') as f:
+                data = json.load(f)
+                print(f"  ✓ Loaded persistent totals from {TOTALS_FILE}")
+                return data
+        except json.JSONDecodeError as e:
+            print(f"  ⚠ Corrupted {TOTALS_FILE}: {e}")
+            print(f"  ↳ Backing up corrupted file and regenerating...")
+            
+            # Backup the corrupted file
+            try:
+                backup_path = f"{TOTALS_FILE}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                os.rename(TOTALS_FILE, backup_path)
+                print(f"  ↳ Backup saved to: {backup_path}")
+            except Exception as backup_error:
+                print(f"  ⚠ Could not backup: {backup_error}")
+        except Exception as e:
+            print(f"  ⚠ Error reading {TOTALS_FILE}: {e}")
+    
+    # Create fresh totals file
+    now = datetime.now()
+    fresh_totals = {
+        "lifetime_total_kwh": 1053724.803,
+        "month_start_total_kwh": 12057.838,
+        "current_month": now.month,
+        "current_year": now.year,
+        "last_daily_total": 0,
+        "last_update_date": now.strftime('%Y-%m-%d')
+    }
+    
+    try:
+        with open(TOTALS_FILE, 'w') as f:
+            json.dump(fresh_totals, f, indent=2)
+        print(f"  ✓ Created fresh {TOTALS_FILE}")
+    except Exception as e:
+        print(f"  ⚠ Could not write {TOTALS_FILE}: {e}")
+    
+    return fresh_totals
 
 def save_persistent_totals(totals):
     """Save lifetime and monthly totals to file"""
     with open(TOTALS_FILE, 'w') as f:
-        json.dump(totals, f, indent=2)
+        json.dump(totals, f, indent=2, ensure_ascii=True)
+
+def load_latest_timestamp():
+    """Load the latest timestamp we've already processed"""
+    if os.path.exists(LATEST_TIMESTAMP_FILE):
+        try:
+            with open(LATEST_TIMESTAMP_FILE, 'r') as f:
+                data = json.load(f)
+                latest = data.get('latest_timestamp')
+                if latest:
+                    return datetime.fromisoformat(latest)
+        except Exception as e:
+            print(f"  ⚠ Could not load latest timestamp: {e}")
+    return None
+
+def save_latest_timestamp(timestamp):
+    """Save the latest timestamp we've processed"""
+    try:
+        with open(LATEST_TIMESTAMP_FILE, 'w') as f:
+            json.dump({
+                'latest_timestamp': timestamp.isoformat(),
+                'saved_at': datetime.now().isoformat()
+            }, f, indent=2)
+    except Exception as e:
+        print(f"  ⚠ Could not save latest timestamp: {e}")
 
 def run_playwright(playwright: Playwright) -> str:
     """Run Playwright to download CSV data"""
@@ -330,7 +381,7 @@ def run_playwright(playwright: Playwright) -> str:
         browser.close()
 
 def parse_csv_data(filepath: str) -> dict:
-    """Parse CSV and calculate all metrics with proper kWh calculation - FIXED VERSION"""
+    """Parse CSV and calculate all metrics - INCREMENTAL VERSION"""
     print("  ↳ Parsing CSV data...")
     with open(filepath, 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
@@ -340,12 +391,13 @@ def parse_csv_data(filepath: str) -> dict:
         print("  ✗ No rows in CSV")
         return None
     
-    print(f"  ↳ Found {len(rows)} rows")
+    print(f"  ↳ Found {len(rows)} rows in CSV")
     
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     
     persistent = load_persistent_totals()
+    latest_processed = load_latest_timestamp()
     
     today_str = now.strftime('%Y-%m-%d')
     is_new_day = persistent['last_update_date'] != today_str
@@ -358,10 +410,25 @@ def parse_csv_data(filepath: str) -> dict:
     
     print(f"  ↳ CSV columns: {list(rows[0].keys())}")
     
+    if latest_processed:
+        print(f"  ↳ Last processed timestamp: {latest_processed.isoformat()}")
+    else:
+        print(f"  ↳ No previous timestamp found - processing all data from today")
+    
     # Find current power from latest row
     for row in reversed(rows):
         try:
-            col_b_key = list(row.keys())[1] if len(row.keys()) > 1 else None
+            col_b_key = None
+            
+            # Find the Production AC column
+            for key in row.keys():
+                if key and 'production' in key.lower() and 'ac' in key.lower():
+                    col_b_key = key
+                    break
+            
+            # Fallback: use second column if key not found
+            if not col_b_key and len(row.keys()) > 1:
+                col_b_key = list(row.keys())[1]
             
             if col_b_key:
                 value_str = str(row[col_b_key]).replace('kWh', '').replace('kwh', '').replace('W', '').replace('w', '').replace(',', '').strip()
@@ -381,13 +448,15 @@ def parse_csv_data(filepath: str) -> dict:
             continue
     
     if latest_with_data:
-        print(f"  ✓ Latest row with data: {latest_with_data}")
+        print(f"  ✓ Latest row with data found")
     else:
         print(f"  ⚠ No valid data found in column B")
         latest_with_data = rows[-1]
     
     # Parse all rows with timestamps and power values
     parsed_rows = []
+    newest_timestamp = latest_processed  # Track the newest timestamp we see
+    
     for row in rows:
         try:
             timestamp = None
@@ -415,7 +484,17 @@ def parse_csv_data(filepath: str) -> dict:
             
             # Extract power value from column B (Production AC)
             power_w = 0
-            col_b_key = list(row.keys())[1] if len(row.keys()) > 1 else None
+            col_b_key = None
+            
+            # Find the Production AC column
+            for key in row.keys():
+                if key and 'production' in key.lower() and 'ac' in key.lower():
+                    col_b_key = key
+                    break
+            
+            # Fallback: use second column if key not found
+            if not col_b_key and len(row.keys()) > 1:
+                col_b_key = list(row.keys())[1]
             
             if col_b_key:
                 try:
@@ -426,28 +505,34 @@ def parse_csv_data(filepath: str) -> dict:
                     pass
             
             # Only keep rows from TODAY with valid power > 0
+            # AND only if they're after the latest processed timestamp
             if timestamp >= today_start and power_w > 0:
-                parsed_rows.append({
-                    'timestamp': timestamp,
-                    'power_w': power_w
-                })
+                if latest_processed is None or timestamp > latest_processed:
+                    parsed_rows.append({
+                        'timestamp': timestamp,
+                        'power_w': power_w
+                    })
+                    
+                    # Track the newest timestamp
+                    if newest_timestamp is None or timestamp > newest_timestamp:
+                        newest_timestamp = timestamp
         
         except Exception as e:
             continue
     
-    print(f"  ↳ Found {len(parsed_rows)} valid data points from TODAY")
+    print(f"  ↳ Found {len(parsed_rows)} NEW data points since last run")
     
-    # Calculate total energy - each reading is power for the next 5-minute interval
-    daily_total_kwh = 0
+    # Calculate total energy from new rows only
+    daily_increment_kwh = 0
     
     for row in parsed_rows:
         # Each value is power in watts for the next 5 minutes (1/12 hour)
         # Energy = Power (kW) × Time (hours)
         # 5 minutes = 5/60 hours = 1/12 hours = 0.08333 hours
         energy_kwh = (row['power_w'] / 1000.0) * (5.0 / 60.0)
-        daily_total_kwh += energy_kwh
+        daily_increment_kwh += energy_kwh
     
-    print(f"  ↳ Calculated daily total: {daily_total_kwh:.2f} kWh from {len(parsed_rows)} readings (5-min intervals)")
+    print(f"  ↳ Calculated NEW daily increment: {daily_increment_kwh:.2f} kWh from {len(parsed_rows)} new readings")
     
     # Handle day/month transitions
     if is_new_day:
@@ -461,18 +546,23 @@ def parse_csv_data(filepath: str) -> dict:
         persistent['month_start_total_kwh'] = 0
         print(f"  ↳ New month detected! Reset monthly total")
     
-    # Update persistent totals
-    persistent['last_daily_total'] = daily_total_kwh
+    # Update persistent totals with the increment, not replacement
+    persistent['last_daily_total'] += daily_increment_kwh
     persistent['last_update_date'] = today_str
     
-    # Calculate cumulative totals
-    lifetime_kwh = persistent['lifetime_total_kwh'] + daily_total_kwh
-    monthly_kwh = persistent['month_start_total_kwh'] + daily_total_kwh
+    # Save the latest timestamp we processed
+    if newest_timestamp:
+        save_latest_timestamp(newest_timestamp)
     
     save_persistent_totals(persistent)
     
     print(f"  ↳ Month start total: {persistent['month_start_total_kwh']:.2f} kWh")
-    print(f"  ↳ Today's production: {daily_total_kwh:.2f} kWh")
+    print(f"  ↳ Today's total (cumulative): {persistent['last_daily_total']:.2f} kWh")
+    
+    # Calculate cumulative totals
+    lifetime_kwh = persistent['lifetime_total_kwh'] + persistent['last_daily_total']
+    monthly_kwh = persistent['month_start_total_kwh'] + persistent['last_daily_total']
+    
     print(f"  ↳ Monthly total: {monthly_kwh:.2f} kWh")
     print(f"  ↳ Lifetime total: {lifetime_kwh:.2f} kWh")
     
@@ -501,10 +591,10 @@ def parse_csv_data(filepath: str) -> dict:
         "timestamp": now.isoformat(),
         "current_power_w": int(round(current_power_w)),
         "current_power_kwh": round(current_power_w / 1000, 2),
-        "daily_total_kwh": int(round(daily_total_kwh)),
+        "daily_total_kwh": int(round(persistent['last_daily_total'])),
         "monthly_total_kwh": int(round(monthly_kwh)),
         "lifetime_total_kwh": int(round(lifetime_kwh)),
-        "daily_environmental": calc_environmental_impact(daily_total_kwh),
+        "daily_environmental": calc_environmental_impact(persistent['last_daily_total']),
         "monthly_environmental": calc_environmental_impact(monthly_kwh),
         "lifetime_environmental": calc_environmental_impact(lifetime_kwh)
     }
@@ -580,11 +670,38 @@ def push_to_github(data: dict):
 
 def main_loop():
     """Main loop - runs once daily after sunset"""
-    # Check for --force flag
+    # Check for flags
     force_run = '--force' in sys.argv or '-f' in sys.argv
+    test_mode = '--test' in sys.argv or '-t' in sys.argv
+    
+    if test_mode:
+        print("🧪 TEST MODE - Running without modifying persistent data\n")
+        print("=" * 60)
+        
+        try:
+            with sync_playwright() as playwright:
+                csv_file = run_playwright(playwright)
+            
+            data = parse_csv_data(csv_file)
+            
+            if data:
+                print(f"\n📊 Results (TEST MODE - NOT SAVED):")
+                print(f"  Current Power: {data['current_power_w']:,} W".replace(',', ' '))
+                print(f"  Daily Total: {data['daily_total_kwh']:,} kWh".replace(',', ' '))
+                print(f"  Monthly Total: {data['monthly_total_kwh']:,} kWh".replace(',', ' '))
+                print(f"  Lifetime Total: {data['lifetime_total_kwh']:,} kWh".replace(',', ' '))
+                print(f"\n⚠️  NOTE: These values are calculated but NOT saved to persistent storage")
+                print(f"✅ Test mode complete!")
+            else:
+                print("✗ No data parsed\n")
+            
+        except Exception as e:
+            print(f"✗ Error during test run: {e}")
+        
+        return
     
     if force_run:
-        print("🔧 FORCE RUN MODE - Running immediately for testing\n")
+        print("🔧 FORCE RUN MODE - Running immediately and SAVING data\n")
         print("=" * 60)
         
         try:
@@ -618,7 +735,9 @@ def main_loop():
     print(f"Repository: {GITHUB_USERNAME}/{GITHUB_REPO}")
     print(f"Location: {LATITUDE}°, {LONGITUDE}°")
     print(f"Runs daily {SUNSET_OFFSET_MINUTES} minutes after sunset")
-    print(f"Tip: Use 'python Solar_Monitor.py --force' to run immediately\n")
+    print(f"Tips:")
+    print(f"  - Use 'python Solar_Monitor.py --force' to run immediately (SAVES data)")
+    print(f"  - Use 'python Solar_Monitor.py --test' to test without saving data\n")
     
     while True:
         try:
