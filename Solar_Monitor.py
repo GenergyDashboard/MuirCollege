@@ -437,29 +437,17 @@ def parse_csv_data(filepath: str) -> dict:
     
     print(f"  ↳ Found {len(parsed_rows)} valid data points from TODAY")
     
-    # Calculate total energy using trapezoidal rule (average of consecutive readings)
+    # Calculate total energy - each reading is power for the next 5-minute interval
     daily_total_kwh = 0
     
-    if len(parsed_rows) > 1:
-        for i in range(len(parsed_rows) - 1):
-            current_power = parsed_rows[i]['power_w']
-            next_power = parsed_rows[i + 1]['power_w']
-            
-            # Average power over this interval
-            avg_power = (current_power + next_power) / 2
-            
-            # Time difference in hours (should be ~5 minutes = 0.0833 hours)
-            time_diff = (parsed_rows[i + 1]['timestamp'] - parsed_rows[i]['timestamp']).total_seconds() / 3600
-            
-            # Energy = Power (kW) × Time (hours)
-            energy_kwh = (avg_power / 1000.0) * time_diff
-            daily_total_kwh += energy_kwh
+    for row in parsed_rows:
+        # Each value is power in watts for the next 5 minutes (1/12 hour)
+        # Energy = Power (kW) × Time (hours)
+        # 5 minutes = 5/60 hours = 1/12 hours = 0.08333 hours
+        energy_kwh = (row['power_w'] / 1000.0) * (5.0 / 60.0)
+        daily_total_kwh += energy_kwh
     
-    elif len(parsed_rows) == 1:
-        # Only one reading - estimate using half the interval
-        daily_total_kwh = (parsed_rows[0]['power_w'] / 1000.0) * (DATA_INTERVAL_MINUTES / 60.0 / 2)
-    
-    print(f"  ↳ Calculated daily total: {daily_total_kwh:.2f} kWh from {len(parsed_rows)} data points")
+    print(f"  ↳ Calculated daily total: {daily_total_kwh:.2f} kWh from {len(parsed_rows)} readings (5-min intervals)")
     
     # Handle day/month transitions
     if is_new_day:
