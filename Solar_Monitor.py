@@ -155,9 +155,12 @@ def load_latest_timestamp():
                 data = json.load(f)
                 latest = data.get('latest_timestamp')
                 if latest:
-                    return datetime.fromisoformat(latest)
+                    ts = datetime.fromisoformat(latest)
+                    print(f"  ✓ Loaded latest timestamp: {ts.isoformat()}")
+                    return ts
         except Exception as e:
             print(f"  ⚠ Could not load latest timestamp: {e}")
+    print(f"  ↳ No previous timestamp found - this is the first run of the day")
     return None
 
 def save_latest_timestamp(timestamp):
@@ -168,6 +171,7 @@ def save_latest_timestamp(timestamp):
                 'latest_timestamp': timestamp.isoformat(),
                 'saved_at': datetime.now().isoformat()
             }, f, indent=2)
+        print(f"  ✓ Saved latest timestamp: {timestamp.isoformat()}")
     except Exception as e:
         print(f"  ⚠ Could not save latest timestamp: {e}")
 
@@ -505,17 +509,20 @@ def parse_csv_data(filepath: str) -> dict:
                     pass
             
             # Only keep rows from TODAY with valid power > 0
-            # AND only if they're after the latest processed timestamp
+            # AND only if they're after the latest processed timestamp (strictly greater than, not equal)
             if timestamp >= today_start and power_w > 0:
                 if latest_processed is None or timestamp > latest_processed:
                     parsed_rows.append({
                         'timestamp': timestamp,
                         'power_w': power_w
                     })
+                    print(f"  ↳ Added new row: {timestamp.isoformat()} - {power_w} W")
                     
                     # Track the newest timestamp
                     if newest_timestamp is None or timestamp > newest_timestamp:
                         newest_timestamp = timestamp
+                else:
+                    print(f"  ↳ Skipped existing row: {timestamp.isoformat()} (already processed)")
         
         except Exception as e:
             continue
