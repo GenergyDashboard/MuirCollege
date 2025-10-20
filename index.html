@@ -75,12 +75,19 @@
             margin-top: 10px;
         }
         
+        .genergy-link {
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+        
         .genergy-text {
-            background: linear-gradient(90deg, #888 0%, #888 100%);
+            background: linear-gradient(90deg, #666 0%, #666 100%);
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             position: relative;
+            font-weight: 500;
         }
         
         .genergy-text::before {
@@ -88,13 +95,14 @@
             position: absolute;
             left: 0;
             top: 0;
-            background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+            background: linear-gradient(90deg, #4ade80 0%, #10b981 50%, #22c55e 100%);
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             width: 0%;
             overflow: hidden;
-            animation: greenSweep 3s ease-in-out infinite;
+            animation: greenSweep 6s ease-in-out infinite;
+            filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.4));
         }
         
         @keyframes greenSweep {
@@ -102,6 +110,9 @@
                 width: 0%;
             }
             50% {
+                width: 100%;
+            }
+            65% {
                 width: 100%;
             }
         }
@@ -426,7 +437,7 @@
     <div class="container">
         <button class="info-toggle" onclick="toggleInfo()">
             <span>ℹ️</span>
-            <span id="toggleText">How Calculations Work</span>
+            <span id="toggleText">Environmental Benefits Explained</span>
         </button>
         
         <div class="header">
@@ -434,78 +445,61 @@
                 <div class="sun-circle"></div>
             </div>
             <h1>Muir College Solar Dashboard</h1>
-            <p>Powered by <span class="genergy-text">Genergy</span></p>
+            <p>Powered by <a href="https://genergy.co.za" target="_blank" rel="noopener noreferrer" class="genergy-link"><span class="genergy-text">Genergy</span></a></p>
             <div class="last-updated" id="lastUpdated">Loading...</div>
         </div>
         
         <div id="infoPanel" class="info-panel">
-            <h2>📐 How We Calculate Environmental Impact</h2>
+            <h2>🌍 How Environmental Benefits Are Calculated</h2>
             
             <div class="info-section">
-                <h3>🔋 Energy Totals</h3>
-                <div class="calculation-item">
-                    <strong>Daily Total</strong>
-                    <p>Calculated by summing all 5-minute power readings from today's CSV data, converting watts to kilowatt-hours.</p>
-                    <div class="formula">Energy (kWh) = Σ (Power in Watts / 1000) × (5 minutes / 60)</div>
-                </div>
-                <div class="calculation-item">
-                    <strong>Monthly Total</strong>
-                    <p>Accumulated from daily totals throughout the current month. Resets to zero at the start of each new month.</p>
-                </div>
-                <div class="calculation-item">
-                    <strong>Lifetime Total</strong>
-                    <p>Started at 1,063,460 kWh (historical baseline) and grows by adding each day's total. Never resets.</p>
-                </div>
-            </div>
-            
-            <div class="info-section">
-                <h3>🌍 Environmental Parameters</h3>
+                <h3>🌿 Understanding Environmental Impact</h3>
                 <div class="calculation-item">
                     <strong>💨 CO₂ Avoided</strong>
-                    <p>Amount of carbon dioxide emissions prevented by using solar instead of grid electricity.</p>
+                    <p>This represents the amount of carbon dioxide emissions prevented by using solar power instead of conventional grid electricity from fossil fuels.</p>
                     <div class="formula">CO₂ Avoided = Energy (kWh) × 1 kg CO₂/kWh</div>
                 </div>
                 <div class="calculation-item">
                     <strong>🌳 Trees Equivalent</strong>
-                    <p>Number of trees needed to absorb the same CO₂. Based on 250-1000 trees per hectare absorbing 22 kg CO₂/year each.</p>
-                    <div class="formula">Trees = CO₂ Avoided / (22 kg/tree/year ÷ Trees per hectare)</div>
+                    <p>The number of mature trees that would be needed to absorb the same amount of CO₂ that was avoided through solar generation. Based on trees absorbing approximately 22 kg of CO₂ per year.</p>
+                    <div class="formula">Trees = CO₂ Avoided / 22 kg per tree per year</div>
                 </div>
                 <div class="calculation-item">
                     <strong>🏠 Households Powered</strong>
-                    <p>Years an average household could run on this energy, based on 3,546.63 kWh per household per year.</p>
+                    <p>How many years an average household could be powered with this amount of clean energy, based on typical consumption of 3,546.63 kWh per household annually.</p>
                     <div class="formula">Household Years = Energy (kWh) / 3,546.63 kWh/year</div>
                 </div>
                 <div class="calculation-item">
                     <strong>🚗 Driving Equivalent</strong>
-                    <p>Distance you could drive a car that would emit the same CO₂, at 0.251 kg CO₂ per km.</p>
-                    <div class="formula">Distance = CO₂ Avoided / 0.251033 kg/km</div>
+                    <p>The distance you could drive an average gasoline car that would produce the same CO₂ emissions as the clean electricity generated by our solar panels.</p>
+                    <div class="formula">Distance = CO₂ Avoided / 0.251 kg CO₂ per km</div>
                 </div>
                 <div class="calculation-item">
                     <strong>✈️ Flying Equivalent</strong>
-                    <p>Distance you could fly that would emit the same CO₂, at 12.28 kg CO₂ per km flown.</p>
-                    <div class="formula">Distance = CO₂ Avoided / 12.280237 kg/km</div>
+                    <p>The distance you could fly in a commercial airplane that would emit the same amount of CO₂ as the fossil fuel electricity we've avoided using.</p>
+                    <div class="formula">Distance = CO₂ Avoided / 12.28 kg CO₂ per km</div>
                 </div>
                 <div class="calculation-item">
                     <strong>⚫ Coal Saved</strong>
-                    <p>Amount of coal that would be needed to generate the same electricity, at 0.508 kg coal per kWh.</p>
-                    <div class="formula">Coal Saved = Energy (kWh) × 0.50802304 kg/kWh</div>
+                    <p>The amount of coal that would need to be burned in a power plant to generate the same amount of electricity we've produced with solar energy.</p>
+                    <div class="formula">Coal Saved = Energy (kWh) × 0.508 kg coal per kWh</div>
                 </div>
                 <div class="calculation-item">
                     <strong>💧 Water Saved</strong>
-                    <p>Water saved by not using conventional power plants (which need cooling), at 1.4 litres per kWh.</p>
-                    <div class="formula">Water Saved = Energy (kWh) × 1.4 litres/kWh</div>
+                    <p>The amount of water saved by using solar power instead of conventional power plants, which require significant amounts of water for cooling systems.</p>
+                    <div class="formula">Water Saved = Energy (kWh) × 1.4 litres per kWh</div>
                 </div>
             </div>
             
             <div class="info-section">
-                <h3>📊 Data Sources</h3>
+                <h3>📊 Why These Metrics Matter</h3>
                 <div class="calculation-item">
-                    <strong>Update Frequency</strong>
-                    <p>Data is fetched from the Genergy solar monitoring system every 5 minutes and automatically pushed to this dashboard.</p>
+                    <strong>Real Environmental Impact</strong>
+                    <p>Every kilowatt-hour of solar energy we generate directly reduces our dependence on fossil fuels and helps combat climate change. These calculations translate abstract energy numbers into tangible environmental benefits that everyone can understand.</p>
                 </div>
                 <div class="calculation-item">
-                    <strong>Data Persistence</strong>
-                    <p>All totals are stored locally in persistent_totals.json to maintain accuracy across system restarts and ensure cumulative values are preserved.</p>
+                    <strong>Data Transparency</strong>
+                    <p>All calculations use internationally recognized conversion factors and are updated in real-time based on actual solar production data from our monitoring system.</p>
                 </div>
             </div>
         </div>
@@ -570,10 +564,10 @@
             const text = document.getElementById('toggleText');
             if (panel.classList.contains('show')) {
                 panel.classList.remove('show');
-                text.textContent = 'How Calculations Work';
+                text.textContent = 'Environmental Benefits Explained';
             } else {
                 panel.classList.add('show');
-                text.textContent = 'Hide Calculations';
+                text.textContent = 'Hide Explanation';
             }
         }
         
