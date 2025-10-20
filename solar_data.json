@@ -1,38 +1,38 @@
 {
-  "timestamp": "2025-10-20T12:11:24.240340",
+  "timestamp": "2025-10-20T12:35:40.584248",
   "current_power_w": 86640,
   "current_power_kwh": 86.64,
-  "daily_total_kwh": 954,
-  "monthly_total_kwh": 15077,
-  "lifetime_total_kwh": 1054761,
+  "daily_total_kwh": 517,
+  "monthly_total_kwh": 14640,
+  "lifetime_total_kwh": 1054324,
   "daily_environmental": {
-    "co2_avoided_kg": 954,
-    "trees_planted_lower": 10842,
-    "trees_planted_upper": 43367,
-    "households_powered": 0.27,
-    "km_driven_equivalent": 3801,
-    "km_flown_equivalent": 78,
-    "coal_saved_kg": 485,
-    "water_saved_litres": 1336
+    "co2_avoided_kg": 517,
+    "trees_planted_lower": 5877,
+    "trees_planted_upper": 23508,
+    "households_powered": 0.15,
+    "km_driven_equivalent": 2060,
+    "km_flown_equivalent": 42,
+    "coal_saved_kg": 263,
+    "water_saved_litres": 724
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 15077,
-    "trees_planted_lower": 171333,
-    "trees_planted_upper": 685332,
-    "households_powered": 4.25,
-    "km_driven_equivalent": 60061,
-    "km_flown_equivalent": 1228,
-    "coal_saved_kg": 7660,
-    "water_saved_litres": 21108
+    "co2_avoided_kg": 14640,
+    "trees_planted_lower": 166368,
+    "trees_planted_upper": 665473,
+    "households_powered": 4.13,
+    "km_driven_equivalent": 58321,
+    "km_flown_equivalent": 1192,
+    "coal_saved_kg": 7438,
+    "water_saved_litres": 20497
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1054761,
-    "trees_planted_lower": 11985925,
-    "trees_planted_upper": 47943698,
-    "households_powered": 297.4,
-    "km_driven_equivalent": 4201684,
-    "km_flown_equivalent": 85891,
-    "coal_saved_kg": 535843,
-    "water_saved_litres": 1476666
+    "co2_avoided_kg": 1054324,
+    "trees_planted_lower": 11980960,
+    "trees_planted_upper": 47923840,
+    "households_powered": 297.28,
+    "km_driven_equivalent": 4199944,
+    "km_flown_equivalent": 85855,
+    "coal_saved_kg": 535621,
+    "water_saved_litres": 1476054
   }
 }
