@@ -23,8 +23,8 @@ DATA_INTERVAL_MINUTES = 5
 
 # Location coordinates (set these to your location)
 # Example: Muir College, UCSD coordinates
-LATITUDE = 32.8801  # Replace with your latitude
-LONGITUDE = -117.2340  # Replace with your longitude
+LATITUDE = -33.73401677077065  # Replace with your latitude
+LONGITUDE = 25.418656496962328  # Replace with your longitude
 SUNSET_OFFSET_MINUTES = 30  # Run this many minutes after sunset
 
 # Get credentials from environment variables
