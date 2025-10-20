@@ -628,12 +628,20 @@ def push_to_github(data: dict):
         # Pull first to sync with remote changes
         try:
             print(f"  → Pulling latest changes from remote...")
+            # First, stash any uncommitted changes
+            subprocess.run(['git', 'stash'], capture_output=True, text=True, timeout=10)
+            
+            # Then pull with rebase
             result = subprocess.run(['git', 'pull', 'origin', 'main', '--rebase'], 
                                   capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
                 print(f"  ✓ Successfully synced with remote")
             else:
                 print(f"  ⚠ Pull warning: {result.stderr}")
+                # If pull fails, try a hard reset
+                subprocess.run(['git', 'reset', '--hard', 'origin/main'], 
+                             capture_output=True, text=True, timeout=10)
+                print(f"  ↳ Performed hard reset to remote main")
         except subprocess.TimeoutExpired:
             print(f"  ⚠ Pull timeout, continuing anyway...")
         except subprocess.CalledProcessError as e:
