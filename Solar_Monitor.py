@@ -654,25 +654,38 @@ def push_to_github(data: dict):
         # Commit changes
         commit_message = f"Update solar data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         try:
-            subprocess.run(['git', 'commit', '-m', commit_message], 
-                          check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as e:
-            if "nothing to commit" in e.stdout or "nothing to commit" in e.stderr:
-                print(f"  ℹ No changes to commit (data unchanged)")
-                return
+            result = subprocess.run(['git', 'commit', '-m', commit_message], 
+                          capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                if "nothing to commit" in result.stdout or "nothing to commit" in result.stderr or "no changes added" in result.stderr:
+                    print(f"  ℹ No changes to commit (data unchanged)")
+                    return
+                else:
+                    print(f"  ⚠ Commit warning: {result.stderr}")
             else:
-                raise
+                print(f"  ✓ Changes committed")
+        except subprocess.CalledProcessError as e:
+            print(f"  ⚠ Commit error: {e.stderr}")
+            return
         
         # Push to remote
         try:
-            result = subprocess.run(['git', 'push'], 
-                                   check=True, capture_output=True, text=True, timeout=30)
-            print(f"  ✓ Pushed to GitHub successfully")
-        except subprocess.CalledProcessError:
-            # Try with set-upstream if regular push fails
-            result = subprocess.run(['git', 'push', '--set-upstream', 'origin', 'main'], 
-                                   check=True, capture_output=True, text=True, timeout=30)
-            print(f"  ✓ Pushed to GitHub successfully (set upstream)")
+            result = subprocess.run(['git', 'push', 'origin', 'main'], 
+                                   capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                print(f"  ✓ Pushed to GitHub successfully")
+            else:
+                print(f"  ⚠ Push failed: {result.stderr}")
+                # Try with set-upstream
+                result = subprocess.run(['git', 'push', '--set-upstream', 'origin', 'main'], 
+                                       capture_output=True, text=True, timeout=30)
+                if result.returncode == 0:
+                    print(f"  ✓ Pushed to GitHub successfully (set upstream)")
+                else:
+                    print(f"  ⚠ Push with set-upstream failed: {result.stderr}")
+        except subprocess.TimeoutExpired:
+            print(f"  ⚠ Push timeout")
         
         print(f"  ✓ File ready for GitHub Pages to serve")
         
