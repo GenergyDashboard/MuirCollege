@@ -612,6 +612,26 @@ def push_to_github(data: dict):
         json_path = os.path.abspath(DATA_FILE)
         print(f"  → Writing JSON to: {json_path}")
         
+        # Check if file exists and compare content
+        needs_update = True
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+                
+                # Compare data (excluding timestamp for comparison)
+                existing_copy = existing_data.copy()
+                new_copy = data.copy()
+                existing_copy.pop('timestamp', None)
+                new_copy.pop('timestamp', None)
+                
+                if existing_copy == new_copy:
+                    print(f"  ℹ Data unchanged (only timestamp differs)")
+                    needs_update = False
+            except:
+                pass
+        
+        # Write the file
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
         
@@ -622,6 +642,10 @@ def push_to_github(data: dict):
         
         written_timestamp = written_data.get('timestamp', 'UNKNOWN')
         print(f"  ✓ Timestamp: {written_timestamp}")
+        
+        if not needs_update:
+            print(f"  ℹ Skipping git push (no significant changes)")
+            return
         
         print(f"  → Pushing to GitHub...")
         
@@ -651,11 +675,25 @@ def push_to_github(data: dict):
         subprocess.run(['git', 'add', DATA_FILE], 
                       check=True, capture_output=True, text=True)
         
+        # Check git status first
+        status_result = subprocess.run(['git', 'status', '--porcelain'], 
+                                      capture_output=True, text=True, timeout=10)
+        print(f"  → Git status output: {status_result.stdout.strip() if status_result.stdout.strip() else 'No changes detected'}")
+        
+        # Check if there are actual changes to commit
+        if not status_result.stdout.strip():
+            print(f"  ℹ No changes detected by git (file unchanged)")
+            return
+        
         # Commit changes
         commit_message = f"Update solar data - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         try:
             result = subprocess.run(['git', 'commit', '-m', commit_message], 
                           capture_output=True, text=True)
+            
+            print(f"  → Commit stdout: {result.stdout.strip()}")
+            print(f"  → Commit stderr: {result.stderr.strip()}")
+            print(f"  → Commit return code: {result.returncode}")
             
             if result.returncode != 0:
                 if "nothing to commit" in result.stdout or "nothing to commit" in result.stderr or "no changes added" in result.stderr:
@@ -663,6 +701,7 @@ def push_to_github(data: dict):
                     return
                 else:
                     print(f"  ⚠ Commit warning: {result.stderr}")
+                    return
             else:
                 print(f"  ✓ Changes committed")
         except subprocess.CalledProcessError as e:
@@ -675,6 +714,7 @@ def push_to_github(data: dict):
                                    capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
                 print(f"  ✓ Pushed to GitHub successfully")
+                print(f"  → Push stdout: {result.stdout.strip()}")
             else:
                 print(f"  ⚠ Push failed: {result.stderr}")
                 # Try with set-upstream
@@ -718,7 +758,7 @@ def main_loop():
                 print(f"  Daily Total: {data['daily_total_kwh']:,} kWh".replace(',', ' '))
                 print(f"  Monthly Total: {data['monthly_total_kwh']:,} kWh".replace(',', ' '))
                 print(f"  Lifetime Total: {data['lifetime_total_kwh']:,} kWh".replace(',', ' '))
-                print(f"\n⚠️  NOTE: These values are calculated but NOT saved to persistent storage")
+                print(f"\n⚠️ NOTE: These values are calculated but NOT saved to persistent storage")
                 print(f"✅ Test mode complete!")
             else:
                 print("✗ No data parsed\n")
@@ -851,7 +891,7 @@ def main_loop():
             
         except Exception as e:
             print(f"✗ Error occurred: {e}")
-            print(f"⏳ Retrying in 5 minutes...\n")
+            print(f"↳ Retrying in 5 minutes...\n")
             time.sleep(300)
 
 if __name__ == "__main__":
