@@ -257,13 +257,15 @@
             font-weight: 700;
             color: #FFD700;
             margin-bottom: 5px;
-            display: flex;
-            align-items: baseline;
-            gap: 10px;
         }
         
-        .card-unit {
-            font-size: 0.6em;
+        .card-value .value-number {
+            display: inline;
+        }
+        
+        .card-value .value-unit {
+            font-size: 0.5em;
+            margin-left: 8px;
             color: #FFD700;
         }
         
@@ -514,20 +516,23 @@
             <div class="grid">
                 <div class="card">
                     <div class="card-title">📅 Today's Total</div>
-                    <div class="card-value" id="dailyTotal">0</div>
-                    <div class="card-unit">kWh</div>
+                    <div class="card-value">
+                        <span class="value-number" id="dailyTotal">0</span><span class="value-unit">kWh</span>
+                    </div>
                 </div>
                 
                 <div class="card">
                     <div class="card-title">📆 This Month</div>
-                    <div class="card-value" id="monthlyTotal">0</div>
-                    <div class="card-unit">kWh</div>
+                    <div class="card-value">
+                        <span class="value-number" id="monthlyTotal">0</span><span class="value-unit">kWh</span>
+                    </div>
                 </div>
                 
                 <div class="card">
                     <div class="card-title">☀️ Lifetime Total</div>
-                    <div class="card-value" id="lifetimeTotal">0</div>
-                    <div class="card-unit">kWh</div>
+                    <div class="card-value">
+                        <span class="value-number" id="lifetimeTotal">0</span><span class="value-unit">kWh</span>
+                    </div>
                 </div>
             </div>
             
@@ -588,6 +593,11 @@
             return new Intl.NumberFormat('en-US', {
                 maximumFractionDigits: 2
             }).format(num);
+        }
+        
+        function formatTotalNumber(num) {
+            // Remove decimals and use space as separator
+            return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
         }
         
         function getTooltipKey(label) {
@@ -654,9 +664,9 @@
                 
                 const data = await response.json();
                 
-                document.getElementById('dailyTotal').textContent = formatNumber(data.daily_total_kwh);
-                document.getElementById('monthlyTotal').textContent = formatNumber(data.monthly_total_kwh);
-                document.getElementById('lifetimeTotal').textContent = formatNumber(data.lifetime_total_kwh);
+                document.getElementById('dailyTotal').textContent = formatTotalNumber(data.daily_total_kwh);
+                document.getElementById('monthlyTotal').textContent = formatTotalNumber(data.monthly_total_kwh);
+                document.getElementById('lifetimeTotal').textContent = formatTotalNumber(data.lifetime_total_kwh);
                 
                 displayEnvironmentalData(data.daily_environmental, 'dailyEnv');
                 displayEnvironmentalData(data.monthly_environmental, 'monthlyEnv');
