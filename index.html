@@ -590,9 +590,11 @@
         };
         
         function formatNumber(num) {
-            return new Intl.NumberFormat('en-US', {
+            // Format with 2 decimals, then replace commas with spaces
+            const formatted = new Intl.NumberFormat('en-US', {
                 maximumFractionDigits: 2
             }).format(num);
+            return formatted.replace(/,/g, ' ');
         }
         
         function formatTotalNumber(num) {
