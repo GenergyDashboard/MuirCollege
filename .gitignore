@@ -84,3 +84,11 @@ MuirCollege_setup.bat
 cleanup_and_push.py
 fix_git_config.bat
 git-credentials-helper.bat
+
+# Setup and deployment scripts
+setup_github.py
+setup_github.bat
+MuirCollege_setup.bat
+cleanup_and_push.py
+fix_git_config.bat
+git-credentials-helper.bat
