@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar Mini Widget</title>
+<style>
+  body {
+    margin: 0;
+    background: #0e0e0e;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .widget {
+    max-width: 280px;
+    background: #151515;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+
+  .title {
+    font-size: 1em;
+    color: #FFD700;
+    margin-bottom: 8px;
+  }
+
+  .value {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #FFD700;
+    margin-bottom: 12px;
+  }
+
+  .env-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .env-item {
+    background: #1a1a1a;
+    border-left: 3px solid #FFD700;
+    border-radius: 8px;
+    padding: 6px;
+    font-size: 0.8em;
+  }
+
+  .env-label {
+    color: #aaa;
+  }
+
+  .env-value {
+    color: #FFD700;
+    font-weight: 600;
+  }
+
+  .footer {
+    font-size: 0.7em;
+    color: #666;
+    margin-top: 8px;
+  }
+
+  a {
+    color: #22c55e;
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+  <div class="widget">
+    <div class="title">☀️ Solar Generation Today</div>
+    <div class="value" id="dailyTotal">0 kWh</div>
+
+    <div class="env-grid" id="envData"></div>
+
+    <div class="footer">
+      Powered by <a href="https://genergy.co.za" target="_blank">Genergy</a>
+    </div>
+  </div>
+
+<script>
+async function fetchData() {
+  try {
+    const res = await fetch('solar_data.json?t=' + Date.now());
+    if (!res.ok) throw new Error('Failed to fetch solar data');
+    const data = await res.json();
+
+    // Update today's generation
+    document.getElementById('dailyTotal').textContent = Math.round(data.daily_total_kwh) + ' kWh';
+
+    // Environmental (use daily_environmental if available)
+    const env = data.daily_environmental || {};
+    const envContainer = document.getElementById('envData');
+    envContainer.innerHTML = `
+      <div class="env-item"><div class="env-label">💨 CO₂</div><div class="env-value">${Math.round(env.co2_avoided_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">🌳 Trees</div><div class="env-value">${Math.round(env.trees_planted_lower)}</div></div>
+      <div class="env-item"><div class="env-label">⚫ Coal</div><div class="env-value">${Math.round(env.coal_saved_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">💧 Water</div><div class="env-value">${Math.round(env.water_saved_litres)} L</div></div>
+    `;
+  } catch (err) {
+    console.error('Error:', err);
+    document.getElementById('dailyTotal').textContent = '⚠️ Data Unavailable';
+  }
+}
+
+fetchData();
+setInterval(fetchData, 60000);
+</script>
+</body>
+</html>
