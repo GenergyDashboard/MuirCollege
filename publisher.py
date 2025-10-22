@@ -1,6 +1,6 @@
 """
 Solar Data Publisher - SAFE FOR PUBLIC GITHUB
-This script only reads the sanitized solar_data.json and pushes it to GitHub.
+This script only reads the cleaned solar_data.json and pushes it to GitHub.
 NO credentials, NO login logic, NO sensitive information.
 """
 
