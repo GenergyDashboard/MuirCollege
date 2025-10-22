@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar Summary Widget</title>
+<style>
+  body {
+    margin: 0;
+    background: #0e0e0e;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .widget-container {
+    max-width: 380px;
+    background: #151515;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .header h2 {
+    font-size: 1.2em;
+    color: #FFD700;
+    margin: 0;
+  }
+
+  .totals {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .card-title {
+    font-size: 0.75em;
+    color: #aaa;
+    margin-bottom: 4px;
+  }
+
+  .card-value {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #FFD700;
+  }
+
+  .env-section {
+    margin-top: 10px;
+  }
+
+  .env-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .env-item {
+    background: #1a1a1a;
+    border-left: 3px solid #FFD700;
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  .env-label {
+    font-size: 0.8em;
+    color: #aaa;
+  }
+
+  .env-value {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #FFD700;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.7em;
+    color: #666;
+  }
+
+  @media (max-width: 400px) {
+    .env-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="widget-container">
+    <div class="header">
+      <h2>☀️ Solar Summary</h2>
+      <div id="lastUpdated" style="font-size:0.75em;color:#888;">Loading...</div>
+    </div>
+
+    <div class="totals">
+      <div class="card">
+        <div class="card-title">Today</div>
+        <div class="card-value" id="dailyTotal">0 kWh</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Month</div>
+        <div class="card-value" id="monthlyTotal">0 kWh</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Lifetime</div>
+        <div class="card-value" id="lifetimeTotal">0 kWh</div>
+      </div>
+    </div>
+
+    <div class="env-section">
+      <div class="env-grid" id="envData"></div>
+    </div>
+
+    <div class="footer">
+      Powered by <a href="https://genergy.co.za" target="_blank" style="color:#22c55e;text-decoration:none;">Genergy</a>
+    </div>
+  </div>
+
+<script>
+async function fetchData() {
+  try {
+    const res = await fetch('solar_data.json?t=' + Date.now());
+    if (!res.ok) throw new Error('Failed to fetch solar data');
+    const data = await res.json();
+
+    // Totals
+    document.getElementById('dailyTotal').textContent = Math.round(data.daily_total_kwh) + ' kWh';
+    document.getElementById('monthlyTotal').textContent = Math.round(data.monthly_total_kwh) + ' kWh';
+    document.getElementById('lifetimeTotal').textContent = Math.round(data.lifetime_total_kwh) + ' kWh';
+
+    // Environmental (using lifetime data)
+    const env = data.lifetime_environmental || {};
+    const envContainer = document.getElementById('envData');
+    envContainer.innerHTML = `
+      <div class="env-item"><div class="env-label">💨 CO₂ Avoided</div><div class="env-value">${Math.round(env.co2_avoided_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">🌳 Trees Equivalent</div><div class="env-value">${Math.round(env.trees_planted_lower)}</div></div>
+      <div class="env-item"><div class="env-label">⚫ Coal Saved</div><div class="env-value">${Math.round(env.coal_saved_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">💧 Water Saved</div><div class="env-value">${Math.round(env.water_saved_litres)} L</div></div>
+    `;
+
+    const updateTime = new Date(data.timestamp);
+    document.getElementById('lastUpdated').textContent = 'Updated: ' + updateTime.toLocaleString();
+  } catch (err) {
+    console.error('Error:', err);
+    document.getElementById('lastUpdated').textContent = '⚠️ Unable to load data';
+  }
+}
+
+fetchData();
+setInterval(fetchData, 60000);
+</script>
+</body>
+</html>
