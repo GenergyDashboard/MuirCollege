@@ -1,110 +1,44 @@
-# Environment variables - NEVER commit these!
+# CRITICAL: Credentials and secrets
 .env
-.env.local
-.env.*.local
+.env.*
+*.env
+env/
+venv/
 
-# Credentials and secrets
-*.pem
-*.key
-credentials.json
-secrets.json
+# Scripts with login logic (NEVER commit these)
+Solar_Monitor.py
+collector.py
+solar_collector.py
+
+# Batch files that might contain tokens
+cleanup_and_push.bat
+git_sync_fix.bat
+run_sunset_monitor.bat
+
+# Local data storage
 persistent_totals.json
+latest_csv_timestamp.json
+last_run.json
+downloads/
+backups/
 
-# Setup scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
+# Logs
+*.log
+logs/
 
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-*.egg-info/
-dist/
-build/
+*.pyc
+*.pyo
 
-# Downloads and temporary files
-downloads/
-*.csv
-error_screenshot_*.png
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
-
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
-
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
-
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
-
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
-
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
-
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
-
-# Setup and deployment scripts
-setup_github.py
-setup_github.bat
-MuirCollege_setup.bat
-cleanup_and_push.py
-fix_git_config.bat
-git-credentials-helper.bat
+# ONLY COMMIT:
+# - publisher.py (no credentials)
+# - solar_data.json (sanitized data)
+# - index.html (dashboard)
+# - README.md
+# - requirements.txt
