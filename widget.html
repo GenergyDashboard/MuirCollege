@@ -135,25 +135,28 @@
   </div>
 
 <script>
+function formatNumber(num) {
+  if (num == null || isNaN(num)) return '-';
+  return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
 async function fetchData() {
   try {
     const res = await fetch('solar_data.json?t=' + Date.now());
     if (!res.ok) throw new Error('Failed to fetch solar data');
     const data = await res.json();
 
-    // Totals
-    document.getElementById('dailyTotal').textContent = Math.round(data.daily_total_kwh) + ' kWh';
-    document.getElementById('monthlyTotal').textContent = Math.round(data.monthly_total_kwh) + ' kWh';
-    document.getElementById('lifetimeTotal').textContent = Math.round(data.lifetime_total_kwh) + ' kWh';
+    document.getElementById('dailyTotal').textContent = formatNumber(data.daily_total_kwh) + ' kWh';
+    document.getElementById('monthlyTotal').textContent = formatNumber(data.monthly_total_kwh) + ' kWh';
+    document.getElementById('lifetimeTotal').textContent = formatNumber(data.lifetime_total_kwh) + ' kWh';
 
-    // Environmental (using lifetime data)
     const env = data.lifetime_environmental || {};
     const envContainer = document.getElementById('envData');
     envContainer.innerHTML = `
-      <div class="env-item"><div class="env-label">💨 CO₂ Avoided</div><div class="env-value">${Math.round(env.co2_avoided_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">🌳 Trees Equivalent</div><div class="env-value">${Math.round(env.trees_planted_lower)}</div></div>
-      <div class="env-item"><div class="env-label">⚫ Coal Saved</div><div class="env-value">${Math.round(env.coal_saved_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">💧 Water Saved</div><div class="env-value">${Math.round(env.water_saved_litres)} L</div></div>
+      <div class="env-item"><div class="env-label">💨 CO₂ Avoided</div><div class="env-value">${formatNumber(env.co2_avoided_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">🌳 Trees Equivalent</div><div class="env-value">${formatNumber(env.trees_planted_lower)}</div></div>
+      <div class="env-item"><div class="env-label">⚫ Coal Saved</div><div class="env-value">${formatNumber(env.coal_saved_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">💧 Water Saved</div><div class="env-value">${formatNumber(env.water_saved_litres)} L</div></div>
     `;
 
     const updateTime = new Date(data.timestamp);
@@ -167,5 +170,6 @@ async function fetchData() {
 fetchData();
 setInterval(fetchData, 60000);
 </script>
+
 </body>
 </html>
