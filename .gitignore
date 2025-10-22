@@ -37,7 +37,6 @@ Thumbs.db
 desktop.ini
 
 # ONLY COMMIT:
-# - publisher.py (no credentials)
 # - solar_data.json (sanitized data)
 # - index.html (dashboard)
 # - README.md
