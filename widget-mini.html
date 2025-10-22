@@ -85,23 +85,26 @@
   </div>
 
 <script>
+function formatNumber(num) {
+  if (num == null || isNaN(num)) return '-';
+  return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
 async function fetchData() {
   try {
     const res = await fetch('solar_data.json?t=' + Date.now());
     if (!res.ok) throw new Error('Failed to fetch solar data');
     const data = await res.json();
 
-    // Update today's generation
-    document.getElementById('dailyTotal').textContent = Math.round(data.daily_total_kwh) + ' kWh';
+    document.getElementById('dailyTotal').textContent = formatNumber(data.daily_total_kwh) + ' kWh';
 
-    // Environmental (use daily_environmental if available)
     const env = data.daily_environmental || {};
     const envContainer = document.getElementById('envData');
     envContainer.innerHTML = `
-      <div class="env-item"><div class="env-label">💨 CO₂</div><div class="env-value">${Math.round(env.co2_avoided_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">🌳 Trees</div><div class="env-value">${Math.round(env.trees_planted_lower)}</div></div>
-      <div class="env-item"><div class="env-label">⚫ Coal</div><div class="env-value">${Math.round(env.coal_saved_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">💧 Water</div><div class="env-value">${Math.round(env.water_saved_litres)} L</div></div>
+      <div class="env-item"><div class="env-label">💨 CO₂</div><div class="env-value">${formatNumber(env.co2_avoided_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">🌳 Trees</div><div class="env-value">${formatNumber(env.trees_planted_lower)}</div></div>
+      <div class="env-item"><div class="env-label">⚫ Coal</div><div class="env-value">${formatNumber(env.coal_saved_kg)} kg</div></div>
+      <div class="env-item"><div class="env-label">💧 Water</div><div class="env-value">${formatNumber(env.water_saved_litres)} L</div></div>
     `;
   } catch (err) {
     console.error('Error:', err);
