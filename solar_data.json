@@ -1,38 +1,38 @@
 {
-  "timestamp": "2025-10-22T15:20:36.440102",
-  "current_power_w": 98049,
-  "current_power_kwh": 98.05,
-  "daily_total_kwh": 858.73,
-  "monthly_total_kwh": 16962.73,
-  "lifetime_total_kwh": 1054634.56,
+  "timestamp": "2025-10-22T15:54:35.754822",
+  "current_power_w": 67105,
+  "current_power_kwh": 67.11,
+  "daily_total_kwh": 956.61,
+  "monthly_total_kwh": 17060.61,
+  "lifetime_total_kwh": 1054732.43,
   "daily_environmental": {
-    "co2_avoided_kg": 859,
-    "trees_planted_lower": 9758,
-    "trees_planted_upper": 39033,
-    "households_powered": 0.24,
-    "km_driven_equivalent": 3421,
-    "km_flown_equivalent": 70,
-    "coal_saved_kg": 436,
-    "water_saved_litres": 1202
+    "co2_avoided_kg": 957,
+    "trees_planted_lower": 10871,
+    "trees_planted_upper": 43482,
+    "households_powered": 0.27,
+    "km_driven_equivalent": 3811,
+    "km_flown_equivalent": 78,
+    "coal_saved_kg": 486,
+    "water_saved_litres": 1339
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 16963,
-    "trees_planted_lower": 192758,
-    "trees_planted_upper": 771033,
-    "households_powered": 4.78,
-    "km_driven_equivalent": 67572,
-    "km_flown_equivalent": 1381,
-    "coal_saved_kg": 8617,
-    "water_saved_litres": 23748
+    "co2_avoided_kg": 17061,
+    "trees_planted_lower": 193871,
+    "trees_planted_upper": 775482,
+    "households_powered": 4.81,
+    "km_driven_equivalent": 67962,
+    "km_flown_equivalent": 1389,
+    "coal_saved_kg": 8667,
+    "water_saved_litres": 23885
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1054635,
-    "trees_planted_lower": 11984484,
-    "trees_planted_upper": 47937934,
-    "households_powered": 297.36,
-    "km_driven_equivalent": 4201179,
-    "km_flown_equivalent": 85881,
-    "coal_saved_kg": 535779,
-    "water_saved_litres": 1476488
+    "co2_avoided_kg": 1054732,
+    "trees_planted_lower": 11985596,
+    "trees_planted_upper": 47942383,
+    "households_powered": 297.39,
+    "km_driven_equivalent": 4201569,
+    "km_flown_equivalent": 85889,
+    "coal_saved_kg": 535828,
+    "water_saved_litres": 1476625
   }
 }
