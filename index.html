@@ -450,7 +450,7 @@
                 <div class="sun-circle"></div>
             </div>
             <h1>Muir College Solar Dashboard</h1>
-            <p>Powered by <a href="https://genergy.co.za" target="_blank" rel="noopener noreferrer" class="genergy-link"><span class="genergy-text">Genergy</span></a></p>
+            <p>Powered by <a href="https://genergy.co.za" target="_blank" rel="noopener noreferrer" class="genergy-link"><span class="genergy-text">Genergy</span></a> & The Muir Foundation</p>
             <div class="last-updated" id="lastUpdated">Loading...</div>
         </div>
         
@@ -590,7 +590,6 @@
         };
         
         function formatNumber(num) {
-            // Format with 2 decimals, then replace commas with spaces
             const formatted = new Intl.NumberFormat('en-US', {
                 maximumFractionDigits: 2
             }).format(num);
@@ -598,7 +597,6 @@
         }
         
         function formatTotalNumber(num) {
-            // Remove decimals and use space as separator
             return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
         }
         
@@ -640,7 +638,6 @@
                 ${createEnvItem('💧 Water Saved', data.water_saved_litres, 'litres')}
             `;
             
-            // Add tooltip functionality
             const items = container.querySelectorAll('.env-item');
             items.forEach(item => {
                 const tooltip = item.querySelector('.tooltip');
