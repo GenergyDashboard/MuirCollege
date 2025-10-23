@@ -1,38 +1,38 @@
 {
-  "timestamp": "2025-10-23T15:34:35.335677",
-  "current_power_w": 76349,
-  "current_power_kwh": 76.35,
-  "daily_total_kwh": 918.75,
-  "monthly_total_kwh": 18045.7,
-  "lifetime_total_kwh": 1054442.29,
+  "timestamp": "2025-10-23T15:47:42.758630",
+  "current_power_w": 70417,
+  "current_power_kwh": 70.42,
+  "daily_total_kwh": 930.69,
+  "monthly_total_kwh": 18057.65,
+  "lifetime_total_kwh": 1054454.23,
   "daily_environmental": {
-    "co2_avoided_kg": 919,
-    "trees_planted_lower": 10440,
-    "trees_planted_upper": 41761,
+    "co2_avoided_kg": 931,
+    "trees_planted_lower": 10576,
+    "trees_planted_upper": 42304,
     "households_powered": 0.26,
-    "km_driven_equivalent": 3660,
-    "km_flown_equivalent": 75,
-    "coal_saved_kg": 467,
-    "water_saved_litres": 1286
+    "km_driven_equivalent": 3707,
+    "km_flown_equivalent": 76,
+    "coal_saved_kg": 473,
+    "water_saved_litres": 1303
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 18046,
-    "trees_planted_lower": 205065,
-    "trees_planted_upper": 820259,
+    "co2_avoided_kg": 18058,
+    "trees_planted_lower": 205201,
+    "trees_planted_upper": 820802,
     "households_powered": 5.09,
-    "km_driven_equivalent": 71886,
-    "km_flown_equivalent": 1469,
-    "coal_saved_kg": 9168,
-    "water_saved_litres": 25264
+    "km_driven_equivalent": 71933,
+    "km_flown_equivalent": 1470,
+    "coal_saved_kg": 9174,
+    "water_saved_litres": 25281
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1054442,
-    "trees_planted_lower": 11982299,
-    "trees_planted_upper": 47929195,
+    "co2_avoided_kg": 1054454,
+    "trees_planted_lower": 11982434,
+    "trees_planted_upper": 47929738,
     "households_powered": 297.31,
-    "km_driven_equivalent": 4200413,
-    "km_flown_equivalent": 85865,
-    "coal_saved_kg": 535681,
-    "water_saved_litres": 1476219
+    "km_driven_equivalent": 4200461,
+    "km_flown_equivalent": 85866,
+    "coal_saved_kg": 535687,
+    "water_saved_litres": 1476236
   }
 }
