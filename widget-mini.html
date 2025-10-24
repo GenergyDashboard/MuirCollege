@@ -24,6 +24,39 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   }
 
+  .toggle-buttons {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    background: #1a1a1a;
+    padding: 4px;
+    border-radius: 8px;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #aaa;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .toggle-btn:hover {
+    border-color: #FFD700;
+    color: #FFD700;
+  }
+
+  .toggle-btn.active {
+    background: #FFD700;
+    border-color: #FFD700;
+    color: #0e0e0e;
+    font-weight: 600;
+  }
+
   .title {
     font-size: 1em;
     color: #FFD700;
@@ -66,49 +99,133 @@
     margin-top: 8px;
   }
 
-  a {
-    color: #22c55e;
+  .genergy-link {
     text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .genergy-text {
+    background: linear-gradient(90deg, #666 0%, #666 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    font-weight: 500;
+    display: inline-block;
+  }
+
+  .genergy-text::before {
+    content: 'Genergy';
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: linear-gradient(90deg, #4ade80 0%, #10b981 50%, #22c55e 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    width: 0%;
+    overflow: hidden;
+    animation: greenSweep 6s ease-in-out infinite;
+  }
+
+  @keyframes greenSweep {
+    0%, 100% {
+      width: 0%;
+    }
+    50% {
+      width: 100%;
+    }
+    65% {
+      width: 100%;
+    }
+  }
+
+  .muir-text {
+    color: #fff;
   }
 </style>
 </head>
 <body>
   <div class="widget">
-    <div class="title">☀️ Solar Generation Today</div>
-    <div class="value" id="dailyTotal">0 kWh</div>
+    <div class="toggle-buttons">
+      <button class="toggle-btn active" onclick="switchView('yesterday')">Yesterday</button>
+      <button class="toggle-btn" onclick="switchView('today')">Today</button>
+    </div>
+
+    <div class="title" id="widgetTitle">☀️ Solar Generation Yesterday</div>
+    <div class="value" id="displayTotal">0 kWh</div>
 
     <div class="env-grid" id="envData"></div>
 
     <div class="footer">
-      Powered by <a href="https://genergy.co.za" target="_blank">Genergy</a>
+      Powered by <a href="https://genergy.co.za" target="_blank" rel="noopener noreferrer" class="genergy-link"><span class="genergy-text">Genergy</span></a> & <span class="muir-text">The Muir Foundation</span>
     </div>
   </div>
 
 <script>
+let currentView = 'yesterday';
+let solarData = null;
+
 function formatNumber(num) {
   if (num == null || isNaN(num)) return '-';
   return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function createEnvHTML(env) {
+  if (!env) return '';
+  return `
+    <div class="env-item"><div class="env-label">💨 CO₂</div><div class="env-value">${formatNumber(env.co2_avoided_kg)} kg</div></div>
+    <div class="env-item"><div class="env-label">🌳 Trees</div><div class="env-value">${formatNumber(env.trees_planted_lower)}</div></div>
+    <div class="env-item"><div class="env-label">⚫ Coal</div><div class="env-value">${formatNumber(env.coal_saved_kg)} kg</div></div>
+    <div class="env-item"><div class="env-label">💧 Water</div><div class="env-value">${formatNumber(env.water_saved_litres)} L</div></div>
+  `;
+}
+
+function switchView(view) {
+  currentView = view;
+  
+  // Update button states
+  const buttons = document.querySelectorAll('.toggle-btn');
+  buttons.forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  // Update display
+  if (solarData) {
+    updateDisplay();
+  }
+}
+
+function updateDisplay() {
+  if (!solarData) return;
+  
+  const titleEl = document.getElementById('widgetTitle');
+  const totalEl = document.getElementById('displayTotal');
+  const envEl = document.getElementById('envData');
+  
+  if (currentView === 'yesterday') {
+    titleEl.textContent = '☀️ Solar Generation Yesterday';
+    totalEl.textContent = formatNumber(solarData.yesterday_total_kwh || 0) + ' kWh';
+    envEl.innerHTML = createEnvHTML(solarData.yesterday_environmental);
+  } else {
+    titleEl.textContent = '☀️ Solar Generation Today';
+    totalEl.textContent = formatNumber(solarData.daily_total_kwh) + ' kWh';
+    envEl.innerHTML = createEnvHTML(solarData.daily_environmental);
+  }
 }
 
 async function fetchData() {
   try {
     const res = await fetch('solar_data.json?t=' + Date.now());
     if (!res.ok) throw new Error('Failed to fetch solar data');
-    const data = await res.json();
-
-    document.getElementById('dailyTotal').textContent = formatNumber(data.daily_total_kwh) + ' kWh';
-
-    const env = data.daily_environmental || {};
-    const envContainer = document.getElementById('envData');
-    envContainer.innerHTML = `
-      <div class="env-item"><div class="env-label">💨 CO₂</div><div class="env-value">${formatNumber(env.co2_avoided_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">🌳 Trees</div><div class="env-value">${formatNumber(env.trees_planted_lower)}</div></div>
-      <div class="env-item"><div class="env-label">⚫ Coal</div><div class="env-value">${formatNumber(env.coal_saved_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">💧 Water</div><div class="env-value">${formatNumber(env.water_saved_litres)} L</div></div>
-    `;
+    solarData = await res.json();
+    
+    updateDisplay();
   } catch (err) {
     console.error('Error:', err);
-    document.getElementById('dailyTotal').textContent = '⚠️ Data Unavailable';
+    document.getElementById('displayTotal').textContent = '⚠️ Data Unavailable';
   }
 }
 
