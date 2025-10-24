@@ -31,14 +31,51 @@
   .header h2 {
     font-size: 1.2em;
     color: #FFD700;
-    margin: 0;
+    margin: 0 0 8px 0;
+  }
+
+  .day-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .day-selector label {
+    font-size: 0.8em;
+    color: #aaa;
+  }
+
+  .day-selector select {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #FFD700;
+    font-size: 0.85em;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .day-selector select:hover {
+    border-color: #FFD700;
+  }
+
+  .day-selector select option {
+    background: #1a1a1a;
+    color: #FFD700;
   }
 
   .totals {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-bottom: 15px;
+  }
+
+  .totals.has-selected {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .card {
@@ -61,8 +98,23 @@
     color: #FFD700;
   }
 
+  .permanent-totals {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
   .env-section {
     margin-top: 10px;
+  }
+
+  .env-section-title {
+    font-size: 0.85em;
+    color: #FFD700;
+    margin-bottom: 8px;
+    text-align: center;
+    font-weight: 600;
   }
 
   .env-grid {
@@ -96,8 +148,66 @@
     color: #666;
   }
 
+  .genergy-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .genergy-text {
+    background: linear-gradient(90deg, #666 0%, #666 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    font-weight: 500;
+    display: inline-block;
+  }
+
+  .genergy-text::before {
+    content: 'Genergy';
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: linear-gradient(90deg, #4ade80 0%, #10b981 50%, #22c55e 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    width: 0%;
+    overflow: hidden;
+    animation: greenSweep 6s ease-in-out infinite;
+  }
+
+  @keyframes greenSweep {
+    0%, 100% {
+      width: 0%;
+    }
+    50% {
+      width: 100%;
+    }
+    65% {
+      width: 100%;
+    }
+  }
+
+  .muir-text {
+    color: #fff;
+  }
+
+  #selectedDaySection {
+    display: none;
+    margin-bottom: 15px;
+  }
+
+  #selectedDaySection.show {
+    display: block;
+  }
+
   @media (max-width: 400px) {
     .env-grid {
+      grid-template-columns: 1fr;
+    }
+    .totals.has-selected {
       grid-template-columns: 1fr;
     }
   }
@@ -110,11 +220,36 @@
       <div id="lastUpdated" style="font-size:0.75em;color:#888;">Loading...</div>
     </div>
 
-    <div class="totals">
+    <div class="day-selector">
+      <label for="daySelect">📅 Other Days:</label>
+      <select id="daySelect" onchange="handleDayChange()">
+        <option value="">Select a day...</option>
+      </select>
+    </div>
+
+    <div id="selectedDaySection">
+      <div class="card" style="margin-bottom: 10px;">
+        <div class="card-title" id="selectedDayTitle">Selected Day</div>
+        <div class="card-value" id="selectedDayTotal">0 kWh</div>
+      </div>
+      <div class="env-section">
+        <div class="env-section-title">Environmental Impact</div>
+        <div class="env-grid" id="selectedDayEnv"></div>
+      </div>
+    </div>
+
+    <div class="permanent-totals">
+      <div class="card">
+        <div class="card-title">Yesterday</div>
+        <div class="card-value" id="yesterdayTotal">0 kWh</div>
+      </div>
       <div class="card">
         <div class="card-title">Today</div>
         <div class="card-value" id="dailyTotal">0 kWh</div>
       </div>
+    </div>
+
+    <div class="totals">
       <div class="card">
         <div class="card-title">Month</div>
         <div class="card-value" id="monthlyTotal">0 kWh</div>
@@ -126,18 +261,70 @@
     </div>
 
     <div class="env-section">
-      <div class="env-grid" id="envData"></div>
+      <div class="env-section-title">Yesterday's Environmental Impact</div>
+      <div class="env-grid" id="yesterdayEnvData"></div>
+    </div>
+
+    <div class="env-section">
+      <div class="env-section-title">Today's Environmental Impact</div>
+      <div class="env-grid" id="todayEnvData"></div>
     </div>
 
     <div class="footer">
-      Powered by <a href="https://genergy.co.za" target="_blank" style="color:#22c55e;text-decoration:none;">Genergy</a>
+      Powered by <a href="https://genergy.co.za" target="_blank" rel="noopener noreferrer" class="genergy-link"><span class="genergy-text">Genergy</span></a> & <span class="muir-text">The Muir Foundation</span>
     </div>
   </div>
 
 <script>
+let fullData = null;
+
 function formatNumber(num) {
   if (num == null || isNaN(num)) return '-';
   return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function createEnvHTML(env) {
+  if (!env) return '';
+  return `
+    <div class="env-item"><div class="env-label">💨 CO₂</div><div class="env-value">${formatNumber(env.co2_avoided_kg)} kg</div></div>
+    <div class="env-item"><div class="env-label">🌳 Trees</div><div class="env-value">${formatNumber(env.trees_planted_lower)}</div></div>
+    <div class="env-item"><div class="env-label">⚫ Coal</div><div class="env-value">${formatNumber(env.coal_saved_kg)} kg</div></div>
+    <div class="env-item"><div class="env-label">💧 Water</div><div class="env-value">${formatNumber(env.water_saved_litres)} L</div></div>
+  `;
+}
+
+function populateDaySelector(data) {
+  const select = document.getElementById('daySelect');
+  select.innerHTML = '<option value="">Select a day...</option>';
+  
+  if (data.historical_days && Array.isArray(data.historical_days)) {
+    data.historical_days.forEach(day => {
+      const option = document.createElement('option');
+      option.value = day.date;
+      option.textContent = `${day.day_name} (${day.date})`;
+      select.appendChild(option);
+    });
+  }
+}
+
+function handleDayChange() {
+  const select = document.getElementById('daySelect');
+  const selectedDate = select.value;
+  const section = document.getElementById('selectedDaySection');
+  
+  if (!selectedDate || !fullData) {
+    section.classList.remove('show');
+    return;
+  }
+  
+  const selectedDay = fullData.historical_days.find(day => day.date === selectedDate);
+  
+  if (selectedDay) {
+    section.classList.add('show');
+    document.getElementById('selectedDayTitle').textContent = `${selectedDay.day_name} (${selectedDay.date})`;
+    document.getElementById('selectedDayTotal').textContent = formatNumber(selectedDay.total_kwh) + ' kWh';
+    document.getElementById('selectedDayEnv').innerHTML = createEnvHTML(selectedDay.environmental);
+  }
 }
 
 async function fetchData() {
@@ -145,19 +332,17 @@ async function fetchData() {
     const res = await fetch('solar_data.json?t=' + Date.now());
     if (!res.ok) throw new Error('Failed to fetch solar data');
     const data = await res.json();
+    fullData = data;
 
+    document.getElementById('yesterdayTotal').textContent = formatNumber(data.yesterday_total_kwh || 0) + ' kWh';
     document.getElementById('dailyTotal').textContent = formatNumber(data.daily_total_kwh) + ' kWh';
     document.getElementById('monthlyTotal').textContent = formatNumber(data.monthly_total_kwh) + ' kWh';
     document.getElementById('lifetimeTotal').textContent = formatNumber(data.lifetime_total_kwh) + ' kWh';
 
-    const env = data.lifetime_environmental || {};
-    const envContainer = document.getElementById('envData');
-    envContainer.innerHTML = `
-      <div class="env-item"><div class="env-label">💨 CO₂ Avoided</div><div class="env-value">${formatNumber(env.co2_avoided_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">🌳 Trees Equivalent</div><div class="env-value">${formatNumber(env.trees_planted_lower)}</div></div>
-      <div class="env-item"><div class="env-label">⚫ Coal Saved</div><div class="env-value">${formatNumber(env.coal_saved_kg)} kg</div></div>
-      <div class="env-item"><div class="env-label">💧 Water Saved</div><div class="env-value">${formatNumber(env.water_saved_litres)} L</div></div>
-    `;
+    document.getElementById('yesterdayEnvData').innerHTML = createEnvHTML(data.yesterday_environmental);
+    document.getElementById('todayEnvData').innerHTML = createEnvHTML(data.daily_environmental);
+
+    populateDaySelector(data);
 
     const updateTime = new Date(data.timestamp);
     document.getElementById('lastUpdated').textContent = 'Updated: ' + updateTime.toLocaleString();
