@@ -745,17 +745,31 @@
         
         function populateDaySelector(data) {
             const select = document.getElementById('daySelect');
-            const currentOptions = Array.from(select.options).map(opt => opt.value);
             
             // Keep the first "Choose a day..." option
             select.innerHTML = '<option value="">Choose a day...</option>';
             
-            // Add available historical days (excluding today and yesterday)
-            if (data.historical_days && Array.isArray(data.historical_days)) {
-                data.historical_days.forEach(day => {
+            // Use past_7_days from the JSON, excluding the most recent day (yesterday)
+            if (data.past_7_days && Array.isArray(data.past_7_days)) {
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                
+                // Sort by date descending and skip the first one (yesterday)
+                const historicalDays = [...data.past_7_days]
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(1); // Skip yesterday (already shown in its own section)
+                
+                historicalDays.forEach(day => {
+                    const date = new Date(day.date);
+                    const dayName = days[date.getDay()];
+                    const displayDate = date.toLocaleDateString('en-ZA', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit' 
+                    });
+                    
                     const option = document.createElement('option');
                     option.value = day.date;
-                    option.textContent = `${day.day_name} (${day.date})`;
+                    option.textContent = `${dayName} (${displayDate}) - ${formatTotalNumber(day.total_kwh)} kWh`;
                     select.appendChild(option);
                 });
             }
@@ -764,20 +778,28 @@
         function handleDayChange() {
             const select = document.getElementById('daySelect');
             const selectedDate = select.value;
+            const section = document.getElementById('selectedDaySection');
             
             if (!selectedDate || !fullData) {
-                document.getElementById('selectedDaySection').style.display = 'none';
+                section.style.display = 'none';
                 return;
             }
             
-            // Find the selected day's data
-            const selectedDay = fullData.historical_days.find(day => day.date === selectedDate);
-            
-            if (selectedDay) {
-                document.getElementById('selectedDaySection').style.display = 'block';
-                document.getElementById('selectedDayTitle').textContent = `${selectedDay.day_name} (${selectedDay.date})`;
-                displayEnvironmentalData(selectedDay.environmental, 'selectedDayEnv');
+            // Find the selected day in past_7_days
+            if (fullData.past_7_days && Array.isArray(fullData.past_7_days)) {
+                const selectedDay = fullData.past_7_days.find(day => day.date === selectedDate);
+                
+                if (selectedDay) {
+                    section.style.display = 'block';
+                    const selectedOption = select.options[select.selectedIndex];
+                    document.getElementById('selectedDayTitle').textContent = selectedOption.textContent.split(' - ')[0]; // Remove the kWh suffix
+                    displayEnvironmentalData(selectedDay.environmental, 'selectedDayEnv');
+                    return;
+                }
             }
+            
+            // If no data exists for this date, hide the section
+            section.style.display = 'none';
         }
         
         async function fetchData() {
