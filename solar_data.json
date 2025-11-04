@@ -1,36 +1,36 @@
 {
-  "timestamp": "2025-11-04T16:36:55.560564",
-  "current_power_w": 16796,
-  "current_power_kwh": 16.8,
-  "daily_total_kwh": 636.36,
-  "monthly_total_kwh": 3098.64,
-  "lifetime_total_kwh": 1080781.86,
+  "timestamp": "2025-11-04T19:20:57.557439",
+  "current_power_w": 19,
+  "current_power_kwh": 0.02,
+  "daily_total_kwh": 665.48,
+  "monthly_total_kwh": 3127.76,
+  "lifetime_total_kwh": 1080810.99,
   "daily_environmental": {
-    "co2_avoided_kg": 636,
-    "trees_planted": 29,
-    "households_powered": 0.18,
-    "km_driven_equivalent": 2535,
-    "km_flown_equivalent": 52,
-    "coal_saved_kg": 323,
-    "water_saved_litres": 891
+    "co2_avoided_kg": 665,
+    "trees_planted": 30,
+    "households_powered": 0.19,
+    "km_driven_equivalent": 2651,
+    "km_flown_equivalent": 54,
+    "coal_saved_kg": 338,
+    "water_saved_litres": 932
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 3099,
-    "trees_planted": 141,
-    "households_powered": 0.87,
-    "km_driven_equivalent": 12344,
-    "km_flown_equivalent": 252,
-    "coal_saved_kg": 1574,
-    "water_saved_litres": 4338
+    "co2_avoided_kg": 3128,
+    "trees_planted": 142,
+    "households_powered": 0.88,
+    "km_driven_equivalent": 12460,
+    "km_flown_equivalent": 255,
+    "coal_saved_kg": 1589,
+    "water_saved_litres": 4379
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1080782,
-    "trees_planted": 49126,
-    "households_powered": 304.73,
-    "km_driven_equivalent": 4305338,
-    "km_flown_equivalent": 88010,
-    "coal_saved_kg": 549062,
-    "water_saved_litres": 1513095
+    "co2_avoided_kg": 1080811,
+    "trees_planted": 49128,
+    "households_powered": 304.74,
+    "km_driven_equivalent": 4305454,
+    "km_flown_equivalent": 88012,
+    "coal_saved_kg": 549077,
+    "water_saved_litres": 1513135
   },
   "past_7_days": [
     {
