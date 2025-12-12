@@ -1,0 +1,33 @@
+{
+  "system": {
+    "installed_capacity_kwp": 0,
+    "plant_name": "Muir College",
+    "location": "Port Elizabeth, South Africa",
+    "data_interval_minutes": 5
+  },
+  "coordinates": {
+    "latitude": -33.73401677077065,
+    "longitude": 25.418656496962328,
+    "sunset_offset_minutes": 30,
+    "note": "Used for sunset calculation - scraper runs 30 minutes after sunset"
+  },
+  "initial_values": {
+    "lifetime_total_kwh": 1053724.803,
+    "month_start_total_kwh": 12057.838,
+    "note": "These are the baseline values from your persistent_totals.json"
+  },
+  "authentication": {
+    "client_username": "muir",
+    "client_password": "solar2024",
+    "note": "CHANGE THESE CREDENTIALS for security - store actual values in GitHub Secrets"
+  },
+  "environmental_factors": {
+    "kg_co2_per_kwh": 1,
+    "kg_co2_per_tree_per_year": 22,
+    "kwh_per_household_per_year": 3546.63,
+    "kg_co2_per_km_driven": 0.251033,
+    "kg_co2_per_km_flown": 12.280237,
+    "kg_coal_per_kwh": 0.50802304,
+    "litres_water_per_kwh": 1.4
+  }
+}
