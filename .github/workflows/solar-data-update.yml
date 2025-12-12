@@ -2,11 +2,11 @@ name: Update Solar Data
 
 on:
   schedule:
-    # 10:00 AM SAST = 08:00 UTC
-    - cron: '0 8 * * *'
-    # 3:00 PM SAST = 13:00 UTC
-    - cron: '0 13 * * *'
-    # 8:00 PM SAST = 18:00 UTC
+    # 08:00-08:10 SAST = 06:00 UTC
+    - cron: '0 6 * * *'
+    # 13:00-13:10 SAST = 11:00 UTC
+    - cron: '0 11 * * *'
+    # 20:00-20:10 SAST = 18:00 UTC
     - cron: '0 18 * * *'
   workflow_dispatch:  # Allow manual trigger
 
