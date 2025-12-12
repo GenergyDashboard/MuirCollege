@@ -14,7 +14,7 @@
   "initial_values": {
     "lifetime_total_kwh": 1113630.751,
     "month_start_total_kwh": 10507.660,
-    "note": "These are the baseline values from your persistent_totals.json"
+    "note": "These are the baseline values from my persistent_totals.json"
   },
   "authentication": {
     "client_username": "****",
