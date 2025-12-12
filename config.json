@@ -12,14 +12,14 @@
     "note": "Used for sunset calculation - scraper runs 30 minutes after sunset"
   },
   "initial_values": {
-    "lifetime_total_kwh": 1053724.803,
-    "month_start_total_kwh": 12057.838,
+    "lifetime_total_kwh": 1113630.751,
+    "month_start_total_kwh": 10507.660,
     "note": "These are the baseline values from your persistent_totals.json"
   },
   "authentication": {
-    "client_username": "muir",
-    "client_password": "solar2024",
-    "note": "CHANGE THESE CREDENTIALS for security - store actual values in GitHub Secrets"
+    "client_username": "****",
+    "client_password": "******",
+    "note": "Info stored as secret"
   },
   "environmental_factors": {
     "kg_co2_per_kwh": 1,
