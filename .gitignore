@@ -1,1 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
 
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive data
+data/downloads/*.csv
+data/error_screenshot_*.png
+
+# Keep folders but not temp files
+!data/.gitkeep
+!data/daily/.gitkeep
