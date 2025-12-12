@@ -454,18 +454,21 @@
                     
                     <div class="production-card">
                         <div class="production-label">${label}</div>
-                        <div class="production-value">${formatNumber(viewData.total_kwh, 2)}</div>
+                        <div class="production-value">${formatNumber(viewData.total_kwh, 0)}</div>
                         <div class="production-unit">kWh</div>
                     </div>
             `;
 
             // Add environmental impacts if enabled
             if (state.showEnv && env) {
+                // Debug: Log the environmental data to see what's available
+                console.log('Environmental data:', env);
+                
                 html += `
                     <div class="environmental-grid">
                         <div class="env-item">
                             <div class="env-icon">🌳</div>
-                            <div class="env-value">${formatNumber(env.trees_equivalent || 0, 1)}</div>
+                            <div class="env-value">${formatNumber(env.trees_equivalent || env.trees_planted || 0, 0)}</div>
                             <div class="env-label">Trees</div>
                         </div>
                         <div class="env-item">
@@ -480,7 +483,7 @@
                         </div>
                         <div class="env-item">
                             <div class="env-icon">🏠</div>
-                            <div class="env-value">${formatNumber(env.households_powered_years || 0, 2)}</div>
+                            <div class="env-value">${formatNumber(env.households_powered || env.households_powered || 0, 2)}</div>
                             <div class="env-label">Homes</div>
                         </div>
                     </div>
