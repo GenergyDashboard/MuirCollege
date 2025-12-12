@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Muir College Solar Data Processor
+Muir College Solar Data Processor - FIXED VERSION
 Processes CSV data and generates JSON files for the dashboard
 """
 
@@ -14,8 +14,7 @@ from pathlib import Path
 CONFIG_FILE = "config.json"
 CSV_FILE = "data/solar_export_latest.csv"
 PERSISTENT_TOTALS_FILE = "data/persistent_totals.json"
-LATEST_TIMESTAMP_FILE = "data/latest_csv_timestamp.json"
-SOLAR_DATA_FILE = "solar_data.json"  # Single output file for the dashboard
+SOLAR_DATA_FILE = "solar_data.json"
 
 def load_config():
     """Load configuration from config.json"""
@@ -59,30 +58,6 @@ def save_persistent_totals(totals):
     with open(PERSISTENT_TOTALS_FILE, 'w') as f:
         json.dump(totals, f, indent=2)
 
-def load_latest_timestamp():
-    """Load the latest timestamp we've already processed"""
-    if os.path.exists(LATEST_TIMESTAMP_FILE):
-        try:
-            with open(LATEST_TIMESTAMP_FILE, 'r') as f:
-                data = json.load(f)
-                latest = data.get('latest_timestamp')
-                if latest:
-                    ts = datetime.fromisoformat(latest)
-                    print(f"  ✓ Latest timestamp: {ts.isoformat()}")
-                    return ts
-        except Exception as e:
-            print(f"  ⚠ Could not load latest timestamp: {e}")
-    print(f"  ↳ No previous timestamp found")
-    return None
-
-def save_latest_timestamp(timestamp):
-    """Save the latest timestamp we've processed"""
-    with open(LATEST_TIMESTAMP_FILE, 'w') as f:
-        json.dump({
-            'latest_timestamp': timestamp.isoformat(),
-            'saved_at': datetime.now().isoformat()
-        }, f, indent=2)
-
 def calc_environmental_impact(kwh, params):
     """Calculate environmental impact metrics"""
     co2_avoided = kwh * params["kg_co2_per_kwh"]
@@ -104,7 +79,7 @@ def calc_environmental_impact(kwh, params):
     }
 
 def parse_csv_data(config):
-    """Parse CSV and calculate all metrics - INCREMENTAL VERSION"""
+    """Parse CSV and calculate all metrics - FULL DAY VERSION"""
     print("📊 Processing CSV data...")
     
     params = config['environmental_factors']
@@ -121,72 +96,35 @@ def parse_csv_data(config):
 
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_str = now.strftime('%Y-%m-%d')
 
     persistent = load_persistent_totals(config)
-    latest_processed = load_latest_timestamp()
 
-    today_str = now.strftime('%Y-%m-%d')
     is_new_day = persistent.get('last_update_date', '') != today_str
-
     is_new_month = (persistent.get('current_month') != now.month or
                     persistent.get('current_year') != now.year)
 
-    current_power_w = 0
-    latest_with_data = None
-
-    print(f"  ↳ CSV columns: {list(rows[0].keys())}")
-
-    # Find current power from latest row
-    for row in reversed(rows):
-        try:
-            col_b_key = None
-
-            # Find the Production AC column
-            for key in row.keys():
-                if key and 'production' in key.lower() and 'ac' in key.lower():
-                    col_b_key = key
-                    break
-
-            # Fallback: use second column if key not found
-            if not col_b_key and len(row.keys()) > 1:
-                col_b_key = list(row.keys())[1]
-
-            if col_b_key:
-                value_str = str(row[col_b_key]).replace('kWh', '').replace('kwh', '').replace('W', '').replace('w', '').replace(',', '').strip()
-
-                if value_str and value_str.lower() not in ['none', 'null', '', '0']:
-                    try:
-                        power_value = float(value_str)
-                        if power_value > 0 and power_value <= 100000:
-                            current_power_w = power_value
-                            latest_with_data = row
-                            print(f"  ↳ Current power: {current_power_w} W")
-                            break
-                    except:
-                        pass
-        except Exception as e:
-            continue
-
-    # Parse all rows with timestamps and power values
+    # Parse ALL of today's data (not incremental)
     parsed_rows = []
-    newest_timestamp = latest_processed
-
+    valid_count = 0
+    empty_count = 0
+    
     for row in rows:
         try:
-            timestamp = None
-            timestamp_str = ""
-
-            # Find timestamp column
-            for key in row.keys():
-                if key and ('time' in key.lower() or 'date' in key.lower()):
-                    timestamp_str = row[key]
-                    break
-
+            # Extract timestamp
+            timestamp_str = row.get('Time', '')
             if not timestamp_str:
-                timestamp_str = list(row.values())[0]
+                continue
 
-            # Parse timestamp
-            for fmt in ['%d/%m/%Y %H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%m/%d/%Y %H:%M']:
+            # Parse timestamp - try multiple formats
+            timestamp = None
+            formats = [
+                '%m/%d/%Y %H:%M',  # MM/DD/YYYY HH:MM
+                '%d/%m/%Y %H:%M',  # DD/MM/YYYY HH:MM
+                '%Y-%m-%d %H:%M',  # YYYY-MM-DD HH:MM
+            ]
+            
+            for fmt in formats:
                 try:
                     timestamp = datetime.strptime(timestamp_str, fmt)
                     break
@@ -196,52 +134,42 @@ def parse_csv_data(config):
             if not timestamp:
                 continue
 
-            # Extract power value
-            power_w = 0
-            col_b_key = None
+            # Extract power value from "Production AC" column
+            power_str = row.get('Production AC', '').strip()
+            
+            # Skip empty power values
+            if not power_str or power_str == '':
+                empty_count += 1
+                continue
+            
+            try:
+                power_w = float(power_str)
+            except:
+                continue
 
-            for key in row.keys():
-                if key and 'production' in key.lower() and 'ac' in key.lower():
-                    col_b_key = key
-                    break
+            # Only keep today's data with power > 0
+            if power_w > 0:
+                parsed_rows.append({
+                    'timestamp': timestamp,
+                    'power_w': power_w
+                })
+                valid_count += 1
 
-            if not col_b_key and len(row.keys()) > 1:
-                col_b_key = list(row.keys())[1]
-
-            if col_b_key:
-                try:
-                    value_str = str(row[col_b_key]).replace('kWh', '').replace('kwh', '').replace('W', '').replace('w', '').replace(',', '').strip()
-                    if value_str and value_str.lower() not in ['none', 'null', '']:
-                        power_w = float(value_str)
-                except:
-                    pass
-
-            # Only keep rows from TODAY with valid power > 0
-            if timestamp >= today_start and power_w > 0:
-                if latest_processed is None or timestamp > latest_processed:
-                    parsed_rows.append({
-                        'timestamp': timestamp,
-                        'power_w': power_w
-                    })
-
-                    if newest_timestamp is None or timestamp > newest_timestamp:
-                        newest_timestamp = timestamp
-
-        except Exception:
+        except Exception as e:
             continue
 
-    print(f"  ↳ Found {len(parsed_rows)} NEW data points since last run")
+    print(f"  ✓ Parsed {valid_count} valid readings (skipped {empty_count} empty)")
 
-    # Calculate total energy from new rows only
-    daily_increment_kwh = 0.0
+    # Calculate total energy from ALL readings using 5-minute intervals
     data_interval_hours = config['system']['data_interval_minutes'] / 60.0
+    daily_total_kwh = 0.0
 
     for row in parsed_rows:
         # Energy = Power (kW) × Time (hours)
         energy_kwh = (row['power_w'] / 1000.0) * data_interval_hours
-        daily_increment_kwh += energy_kwh
+        daily_total_kwh += energy_kwh
 
-    print(f"  ↳ NEW daily increment: {daily_increment_kwh:.2f} kWh from {len(parsed_rows)} readings")
+    print(f"  ✓ Calculated daily total: {daily_total_kwh:.2f} kWh from {len(parsed_rows)} readings")
 
     # Handle day/month transitions
     if is_new_day:
@@ -267,22 +195,15 @@ def parse_csv_data(config):
         
         print(f"  ↳ Added {yesterday} to daily history ({yesterday_total:.2f} kWh)")
 
-        # Reset daily counter
-        persistent['last_daily_total'] = 0.0
-
     if is_new_month:
         persistent['current_month'] = now.month
         persistent['current_year'] = now.year
         persistent['month_start_total_kwh'] = 0.0
         print(f"  ↳ New month! Reset monthly total")
 
-    # Update persistent totals
-    persistent['last_daily_total'] = persistent.get('last_daily_total', 0.0) + daily_increment_kwh
+    # Update persistent totals - REPLACE daily total (don't add)
+    persistent['last_daily_total'] = daily_total_kwh
     persistent['last_update_date'] = today_str
-
-    # Save the latest timestamp
-    if newest_timestamp:
-        save_latest_timestamp(newest_timestamp)
 
     save_persistent_totals(persistent)
 
@@ -290,17 +211,15 @@ def parse_csv_data(config):
     lifetime_kwh = persistent['lifetime_total_kwh'] + persistent['last_daily_total']
     monthly_kwh = persistent['month_start_total_kwh'] + persistent['last_daily_total']
 
-    print(f"  ↳ Today's total: {persistent['last_daily_total']:.2f} kWh")
-    print(f"  ↳ Monthly total: {monthly_kwh:.2f} kWh")
-    print(f"  ↳ Lifetime total: {lifetime_kwh:.2f} kWh")
+    print(f"  ✓ Today's total: {persistent['last_daily_total']:.2f} kWh")
+    print(f"  ✓ Monthly total: {monthly_kwh:.2f} kWh")
+    print(f"  ✓ Lifetime total: {lifetime_kwh:.2f} kWh")
 
     # Get yesterday's data
     yesterday_data = persistent.get('daily_history', [])[-1] if persistent.get('daily_history', []) else None
 
     return {
         "timestamp": now.isoformat(),
-        "current_power_w": int(round(current_power_w)),
-        "current_power_kwh": round(current_power_w / 1000, 2),
         "daily_total_kwh": round(persistent['last_daily_total'], 2),
         "monthly_total_kwh": round(monthly_kwh, 2),
         "lifetime_total_kwh": round(lifetime_kwh, 2),
@@ -335,7 +254,7 @@ def save_solar_data(data, config):
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("⚙️  MUIR COLLEGE DATA PROCESSOR")
+    print("⚙️  MUIR COLLEGE DATA PROCESSOR - FIXED VERSION")
     print("=" * 60)
     
     try:
@@ -346,6 +265,9 @@ if __name__ == "__main__":
             save_solar_data(data, config)
             
             print("\n✅ Data processing completed successfully!")
+            print(f"   Daily: {data['daily_total_kwh']} kWh")
+            print(f"   Monthly: {data['monthly_total_kwh']} kWh")
+            print(f"   Lifetime: {data['lifetime_total_kwh']} kWh")
             print("=" * 60)
         else:
             print("\n⚠️  No data to process")
