@@ -333,6 +333,19 @@
             document.body.classList.add('compact');
         }
 
+        // Format numbers with spaces (South African style)
+        function formatNumber(num, decimals = 2) {
+            if (num === undefined || num === null || isNaN(num)) return '0';
+            
+            const fixed = Number(num).toFixed(decimals);
+            const [whole, decimal] = fixed.split('.');
+            
+            // Add spaces every 3 digits from the right
+            const formatted = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            
+            return decimals > 0 ? `${formatted}.${decimal}` : formatted;
+        }
+
         // Fetch and display data
         async function fetchData() {
             try {
@@ -441,7 +454,7 @@
                     
                     <div class="production-card">
                         <div class="production-label">${label}</div>
-                        <div class="production-value">${viewData.total_kwh.toFixed(2)}</div>
+                        <div class="production-value">${formatNumber(viewData.total_kwh, 2)}</div>
                         <div class="production-unit">kWh</div>
                     </div>
             `;
@@ -452,23 +465,23 @@
                     <div class="environmental-grid">
                         <div class="env-item">
                             <div class="env-icon">🌳</div>
-                            <div class="env-value">${(env.trees_equivalent || 0).toFixed(1)}</div>
+                            <div class="env-value">${formatNumber(env.trees_equivalent || 0, 1)}</div>
                             <div class="env-label">Trees</div>
                         </div>
                         <div class="env-item">
-                            <div class="env-icon">💨</div>
-                            <div class="env-value">${(env.co2_avoided_kg || 0).toFixed(0)}</div>
-                            <div class="env-label">kg CO₂</div>
+                            <div class="env-icon">💧</div>
+                            <div class="env-value">${formatNumber(env.water_saved_litres || 0, 0)}</div>
+                            <div class="env-label">Litres</div>
+                        </div>
+                        <div class="env-item">
+                            <div class="env-icon">⚫</div>
+                            <div class="env-value">${formatNumber(env.coal_saved_kg || 0, 0)}</div>
+                            <div class="env-label">kg Coal</div>
                         </div>
                         <div class="env-item">
                             <div class="env-icon">🏠</div>
-                            <div class="env-value">${(env.households_powered_years || 0).toFixed(2)}</div>
-                            <div class="env-label">Households</div>
-                        </div>
-                        <div class="env-item">
-                            <div class="env-icon">🚗</div>
-                            <div class="env-value">${((env.km_driven_equivalent || 0) / 1000).toFixed(1)}</div>
-                            <div class="env-label">1000 km</div>
+                            <div class="env-value">${formatNumber(env.households_powered_years || 0, 2)}</div>
+                            <div class="env-label">Homes</div>
                         </div>
                     </div>
                 `;
