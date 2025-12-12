@@ -7,7 +7,7 @@ Processes CSV data and generates JSON files for the dashboard
 import os
 import json
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # File paths
@@ -119,7 +119,7 @@ def parse_csv_data(config):
 
     print(f"  ↳ Found {len(rows)} rows in CSV")
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     persistent = load_persistent_totals(config)
