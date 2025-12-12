@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muir College Solar Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f0f;
+            color: #fff;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .widget-container {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .view-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            color: #888;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.4);
+            color: #FFD700;
+        }
+
+        .tab-button.active {
+            background: rgba(255, 215, 0, 0.15);
+            border-color: #FFD700;
+            color: #FFD700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .toggle-label {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #888;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            left: 22px;
+            background: #FFD700;
+        }
+
+        .sun-icon {
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 30px rgba(255, 215, 0, 0.6); }
+        }
+
+        .widget-title {
+            flex: 1;
+        }
+
+        .widget-title h3 {
+            font-size: 18px;
+            color: #FFD700;
+            margin-bottom: 4px;
+        }
+
+        .widget-title p {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .production-card {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .production-label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .production-value {
+            font-size: 42px;
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 4px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .production-unit {
+            font-size: 16px;
+            color: #888;
+        }
+
+        .environmental-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .env-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .env-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+
+        .env-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 2px;
+        }
+
+        .env-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .powered-by {
+            text-align: center;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .powered-by a {
+            color: #888;
+            text-decoration: none;
+            font-size: 11px;
+            transition: color 0.3s;
+        }
+
+        .powered-by a:hover {
+            color: #FFD700;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            color: #ff6b6b;
+            text-align: center;
+        }
+
+        /* Compact mode */
+        body.compact .widget-container {
+            padding: 16px;
+        }
+
+        body.compact .widget-header {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+        }
+
+        body.compact .sun-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        body.compact .widget-title h3 {
+            font-size: 16px;
+        }
+
+        body.compact .widget-title p {
+            font-size: 10px;
+        }
+
+        body.compact .view-tabs {
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        body.compact .tab-button {
+            min-width: 70px;
+            padding: 8px 12px;
+            font-size: 11px;
+        }
+
+        body.compact .toggle-container {
+            margin-bottom: 12px;
+            padding: 6px;
+        }
+
+        body.compact .toggle-label {
+            font-size: 10px;
+        }
+
+        body.compact .production-card {
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        body.compact .production-value {
+            font-size: 32px;
+        }
+
+        body.compact .environmental-grid {
+            gap: 8px;
+        }
+
+        body.compact .env-item {
+            padding: 8px;
+        }
+
+        body.compact .env-value {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="widget" class="loading">
+        <div class="sun-icon"></div>
+        <p>Loading solar data...</p>
+    </div>
+
+    <script>
+        // Get configuration from URL parameters (optional - buttons override these)
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // State management
+        let currentData = null;
+        let state = {
+            view: urlParams.get('view') || 'today',
+            showEnv: urlParams.get('showEnv') !== 'false',
+            title: urlParams.get('title') || 'Muir College Solar',
+            link: urlParams.get('link') || 'https://genergyDashboard.github.io/MuirCollege/'
+        };
+
+        const compact = urlParams.get('compact') === 'true';
+        if (compact) {
+            document.body.classList.add('compact');
+        }
+
+        // Fetch and display data
+        async function fetchData() {
+            try {
+                const response = await fetch('solar_data.json');
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
+                currentData = await response.json();
+                renderWidget();
+                
+                // Auto-refresh every 60 seconds
+                setTimeout(fetchData, 60000);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('widget').innerHTML = `
+                    <div class="widget-container">
+                        <div class="error">
+                            <p>Unable to load solar data</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Please check your connection</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function setView(newView) {
+            state.view = newView;
+            renderWidget();
+        }
+
+        function toggleEnv() {
+            state.showEnv = !state.showEnv;
+            renderWidget();
+        }
+
+        function renderWidget() {
+            if (!currentData) return;
+
+            let viewData, label;
+            
+            // Determine which data to show based on current view
+            switch(state.view) {
+                case 'yesterday':
+                    viewData = {
+                        total_kwh: currentData.yesterday_total_kwh || 0,
+                        environmental: currentData.yesterday_environmental || {}
+                    };
+                    label = "Yesterday's Production";
+                    break;
+                case 'month':
+                    viewData = {
+                        total_kwh: currentData.monthly_total_kwh || 0,
+                        environmental: currentData.monthly_environmental || {}
+                    };
+                    label = "This Month's Production";
+                    break;
+                case 'lifetime':
+                    viewData = {
+                        total_kwh: currentData.lifetime_total_kwh || 0,
+                        environmental: currentData.lifetime_environmental || {}
+                    };
+                    label = "Lifetime Production";
+                    break;
+                case 'today':
+                default:
+                    viewData = {
+                        total_kwh: currentData.daily_total_kwh || 0,
+                        environmental: currentData.daily_environmental || {}
+                    };
+                    label = "Today's Production";
+                    break;
+            }
+
+            const env = viewData.environmental;
+            
+            let html = `
+                <div class="widget-container">
+                    <div class="widget-header">
+                        <div class="sun-icon"></div>
+                        <div class="widget-title">
+                            <h3>${state.title}</h3>
+                            <p>Solar Generation Dashboard</p>
+                        </div>
+                    </div>
+                    
+                    <div class="view-tabs">
+                        <button class="tab-button ${state.view === 'today' ? 'active' : ''}" onclick="setView('today')">
+                            Today
+                        </button>
+                        <button class="tab-button ${state.view === 'yesterday' ? 'active' : ''}" onclick="setView('yesterday')">
+                            Yesterday
+                        </button>
+                        <button class="tab-button ${state.view === 'month' ? 'active' : ''}" onclick="setView('month')">
+                            This Month
+                        </button>
+                        <button class="tab-button ${state.view === 'lifetime' ? 'active' : ''}" onclick="setView('lifetime')">
+                            Lifetime
+                        </button>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <span class="toggle-label">Environmental Impact</span>
+                        <div class="toggle-switch ${state.showEnv ? 'active' : ''}" onclick="toggleEnv()">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="production-card">
+                        <div class="production-label">${label}</div>
+                        <div class="production-value">${viewData.total_kwh.toFixed(2)}</div>
+                        <div class="production-unit">kWh</div>
+                    </div>
+            `;
+
+            // Add environmental impacts if enabled
+            if (state.showEnv && env) {
+                html += `
+                    <div class="environmental-grid">
+                        <div class="env-item">
+                            <div class="env-icon">🌳</div>
+                            <div class="env-value">${(env.trees_equivalent || 0).toFixed(1)}</div>
+                            <div class="env-label">Trees</div>
+                        </div>
+                        <div class="env-item">
+                            <div class="env-icon">💨</div>
+                            <div class="env-value">${(env.co2_avoided_kg || 0).toFixed(0)}</div>
+                            <div class="env-label">kg CO₂</div>
+                        </div>
+                        <div class="env-item">
+                            <div class="env-icon">🏠</div>
+                            <div class="env-value">${(env.households_powered_years || 0).toFixed(2)}</div>
+                            <div class="env-label">Households</div>
+                        </div>
+                        <div class="env-item">
+                            <div class="env-icon">🚗</div>
+                            <div class="env-value">${((env.km_driven_equivalent || 0) / 1000).toFixed(1)}</div>
+                            <div class="env-label">1000 km</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `
+                    <div class="powered-by">
+                        <a href="${state.link}" target="_blank">View Full Dashboard →</a>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('widget').innerHTML = html;
+        }
+
+        // Start fetching data
+        fetchData();
+    </script>
+</body>
+</html>
