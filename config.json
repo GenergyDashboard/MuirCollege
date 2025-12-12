@@ -12,7 +12,7 @@
     "note": "Used for sunset calculation - scraper runs 30 minutes after sunset"
   },
   "initial_values": {
-    "lifetime_total_kwh": 1113630.751,
+    "lifetime_total_kwh": 1113553.981,
     "month_start_total_kwh": 10507.660,
     "note": "These are the baseline values from my persistent_totals.json"
   },
