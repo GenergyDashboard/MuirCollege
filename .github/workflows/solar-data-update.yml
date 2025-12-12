@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: write  # Required to update secrets
 
 jobs:
   scrape-and-update:
@@ -38,7 +39,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install playwright pandas openpyxl xlrd suntime requests
+          pip install playwright pandas openpyxl xlrd suntime requests PyNaCl
           playwright install chromium
           playwright install-deps
       
@@ -46,6 +47,7 @@ jobs:
         env:
           SOLAR_EMAIL: ${{ secrets.SOLAR_EMAIL }}
           SOLAR_PASSWORD: ${{ secrets.SOLAR_PASSWORD }}
+          AUTH_STATE: ${{ secrets.AUTH_STATE }}  # Optional: skips login if provided
         run: |
           python scraper.py
       
