@@ -1,9 +1,23 @@
 {
-  "lifetime_total_kwh": 1113553.981,
-  "month_start_total_kwh": 10507.66,
+  "lifetime_total_kwh": 1113887.6685833333,
+  "month_start_total_kwh": 10841.347583333332,
   "current_month": 12,
   "current_year": 2025,
-  "last_daily_total": 333.68758333333324,
-  "last_update_date": "2025-12-12",
-  "daily_history": []
+  "last_daily_total": 78.42941666666667,
+  "last_update_date": "2025-12-13",
+  "daily_history": [
+    {
+      "date": "2025-12-12",
+      "total_kwh": 333.69,
+      "environmental": {
+        "co2_avoided_kg": 334,
+        "trees_planted": 15,
+        "households_powered": 0.09,
+        "km_driven_equivalent": 1329,
+        "km_flown_equivalent": 27,
+        "coal_saved_kg": 170,
+        "water_saved_litres": 467
+      }
+    }
+  ]
 }
