@@ -209,30 +209,30 @@ def run_playwright():
             # Navigate to monitoring page
             print("   Navigating to monitoring page...")
             page.goto("https://genergy.enerest.world/monitoring", timeout=60000)
-            page.wait_for_load_state("domcontentloaded", timeout=30000)
+            page.wait_for_load_state("domcontentloaded", timeout=60000)  # INCREASED from 30000
             
             try:
-                page.wait_for_load_state("networkidle", timeout=10000)
+                page.wait_for_load_state("networkidle", timeout=20000)  # INCREASED from 10000
             except:
                 print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            page.wait_for_timeout(5000)
+            page.wait_for_timeout(8000)  # INCREASED from 5000
             
             # Search for Muir
             print("   Searching for 'Muir' site...")
-            page.wait_for_selector("sds-global-search", state="visible", timeout=30000)
+            page.wait_for_selector("sds-global-search", state="visible", timeout=90000)  # INCREASED from 30000
             page.wait_for_timeout(2000)
             
             page.locator("sds-global-search").click()
             page.wait_for_timeout(1000)
             
-            page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=10000)
+            page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=30000)  # INCREASED from 10000
             page.locator("[data-test=\"global-search-field\"]").fill("Muir")
             page.wait_for_timeout(2000)
             
             # Click insights button
             print("   Opening insights page...")
-            page.wait_for_selector("button:has-text('insights')", state="visible", timeout=10000)
+            page.wait_for_selector("button:has-text('insights')", state="visible", timeout=30000)  # INCREASED from 10000
             page.get_by_role("button").filter(has_text="insights").click()
             page.wait_for_timeout(5000)
             
