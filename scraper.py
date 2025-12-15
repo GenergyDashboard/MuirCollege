@@ -23,7 +23,6 @@ if not SOLAR_EMAIL or not SOLAR_PASSWORD:
     raise ValueError("Missing SOLAR_EMAIL or SOLAR_PASSWORD environment variables")
 
 # Configuration
-DATA_INTERVAL_MINUTES = 5
 CSV_DOWNLOAD_PATH = "data/downloads"
 LATEST_CSV_FILE = "data/solar_export_latest.csv"
 
@@ -218,47 +217,110 @@ def run_playwright():
             
             page.wait_for_timeout(5000)
             
-            # Search for Muir
-            print("   Searching for 'Muir' site...")
-            page.wait_for_selector("sds-global-search", state="visible", timeout=30000)
-            page.wait_for_timeout(2000)
-            
-            page.locator("sds-global-search").click()
-            page.wait_for_timeout(1000)
-            
-            page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=10000)
-            page.locator("[data-test=\"global-search-field\"]").fill("Muir")
-            page.wait_for_timeout(2000)
-            
-            # Click insights button
-            print("   Opening insights page...")
-            page.wait_for_selector("button:has-text('insights')", state="visible", timeout=10000)
-            page.get_by_role("button").filter(has_text="insights").click()
-            page.wait_for_timeout(5000)
-            
+            # Handle potential "OK" button (notifications, cookie banners, etc.)
             try:
-                page.wait_for_load_state("networkidle", timeout=10000)
+                ok_button = page.get_by_role("button", name="OK")
+                if ok_button.is_visible(timeout=3000):
+                    print("   → Clicking 'OK' button (notification/banner)...")
+                    ok_button.click(timeout=2000)
+                    page.wait_for_timeout(1000)
+                    print("  ✓ OK button clicked")
             except:
-                print("  ⚠ Network still active (normal for SPAs), continuing...")
+                # OK button not present or not needed
+                pass
             
-            page.wait_for_timeout(3000)
+            # Search for Muir (with multiple fallback methods)
+            print("   Searching for 'Muir' site...")
             
-            # Set data interval
-            print(f"   Setting data interval to {DATA_INTERVAL_MINUTES} minutes...")
+            search_method_used = None
+            
             try:
-                page.wait_for_selector("[data-test=\"interval-selector\"]", state="visible", timeout=10000)
-                interval_selector = page.locator("[data-test=\"interval-selector\"]")
-                interval_selector.click(timeout=5000)
+                # PRIMARY METHOD: sds-global-search
+                print("   → Trying primary search method (sds-global-search)...")
+                page.wait_for_selector("sds-global-search", state="visible", timeout=15000)
+                page.wait_for_timeout(2000)
+                
+                page.locator("sds-global-search").click()
                 page.wait_for_timeout(1000)
                 
-                interval_option = page.get_by_role("option", name=f"{DATA_INTERVAL_MINUTES} Min")
-                interval_option.click(timeout=5000)
-                page.wait_for_timeout(5000)
-                print(f"  ✓ Interval set to {DATA_INTERVAL_MINUTES} minutes")
+                page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=10000)
+                page.locator("[data-test=\"global-search-field\"]").fill("Muir")
+                page.wait_for_timeout(2000)
+                
+                print("  ✓ Primary search method successful")
+                search_method_used = "primary"
+                
             except Exception as e:
-                print(f"  ⚠ Could not set interval (will use default): {e}")
+                print(f"  ⚠ Primary search failed: {e}")
+                
+                try:
+                    # FALLBACK METHOD 1: magniGlass icon
+                    print("   → Trying fallback method 1 (magniGlass)...")
+                    
+                    page.locator("#magniGlass").click(timeout=10000)
+                    page.wait_for_timeout(1000)
+                    
+                    page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=10000)
+                    page.locator("[data-test=\"global-search-field\"]").fill("Muir")
+                    page.wait_for_timeout(2000)
+                    
+                    # Click on Muir College cell in search results
+                    print("   → Clicking on Muir College cell...")
+                    page.get_by_role("cell", name="Muir College").click(timeout=10000)
+                    page.wait_for_timeout(2000)
+                    
+                    print("  ✓ Fallback method 1 successful")
+                    search_method_used = "fallback1"
+                    
+                except Exception as e2:
+                    print(f"  ⚠ Fallback method 1 also failed: {e2}")
+                    
+                    try:
+                        # FALLBACK METHOD 2: Analysis panel (most different)
+                        print("   → Trying fallback method 2 (analysis panel)...")
+                        
+                        # Click analysis panel
+                        page.wait_for_selector("[data-test=\"analysis\"]", state="visible", timeout=10000)
+                        page.locator("[data-test=\"analysis\"]").click(timeout=5000)
+                        page.wait_for_timeout(2000)
+                        
+                        # Use analysis search input
+                        page.wait_for_selector("[data-test=\"search-input\"]", state="visible", timeout=10000)
+                        page.locator("[data-test=\"search-input\"]").click()
+                        page.wait_for_timeout(500)
+                        page.locator("[data-test=\"search-input\"]").fill("Muir")
+                        page.wait_for_timeout(2000)
+                        
+                        # Click on Muir College cell
+                        print("   → Clicking on Muir College cell...")
+                        page.get_by_role("cell", name="Muir College").click(timeout=10000)
+                        page.wait_for_timeout(3000)
+                        
+                        print("  ✓ Fallback method 2 successful (analysis panel)")
+                        search_method_used = "fallback2_analysis"
+                        
+                    except Exception as e3:
+                        print(f"  ✗ All search methods failed!")
+                        print(f"     Primary: {e}")
+                        print(f"     Fallback 1: {e2}")
+                        print(f"     Fallback 2: {e3}")
+                        raise Exception("All three search methods failed")
             
-            page.wait_for_timeout(3000)
+            # Click insights button (only needed for primary and fallback1)
+            if search_method_used in ["primary", "fallback1"]:
+                print("   Opening insights page...")
+                page.wait_for_selector("button:has-text('insights')", state="visible", timeout=10000)
+                page.get_by_role("button").filter(has_text="insights").click()
+                page.wait_for_timeout(5000)
+                
+                try:
+                    page.wait_for_load_state("networkidle", timeout=10000)
+                except:
+                    print("  ⚠ Network still active (normal for SPAs), continuing...")
+                
+                page.wait_for_timeout(3000)
+            else:
+                print("  ℹ Insights button not needed (using analysis panel)")
             
             # Download CSV
             print("   Downloading CSV...")
