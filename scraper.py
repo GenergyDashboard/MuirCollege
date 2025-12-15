@@ -218,121 +218,46 @@ def run_playwright():
             
             # Give page extra time to fully render
             print("   Waiting for page to fully render...")
-            page.wait_for_timeout(10000)  # Increased from 5000
+            page.wait_for_timeout(10000)
             
             # Handle potential "OK" button (notifications, cookie banners, etc.)
             try:
                 ok_button = page.get_by_role("button", name="OK")
-                if ok_button.is_visible(timeout=5000):  # Increased from 3000
+                if ok_button.is_visible(timeout=5000):
                     print("   → Clicking 'OK' button (notification/banner)...")
                     ok_button.click(timeout=3000)
-                    page.wait_for_timeout(3000)  # Increased from 1000
+                    page.wait_for_timeout(3000)
                     print("  ✓ OK button clicked")
             except:
                 # OK button not present or not needed
                 pass
             
-            # Additional wait after potential OK button for UI to stabilize
-            page.wait_for_timeout(5000)  # NEW: Let UI stabilize after OK
+            # Additional wait for UI to stabilize
+            page.wait_for_timeout(5000)
             
-            # Search for Muir (with multiple fallback methods)
-            print("   Searching for 'Muir' site...")
+            # NEW SIMPLIFIED METHOD: Click analysis panel → insights → Muir College
+            print("   Navigating to Muir College via analysis panel...")
             
-            search_method_used = None
+            # Click "insights" text within analysis panel
+            print("   → Clicking analysis insights...")
+            page.wait_for_selector("[data-test=\"analysis\"]", state="visible", timeout=20000)
+            page.locator("[data-test=\"analysis\"]").get_by_text("insights").click(timeout=10000)
+            page.wait_for_timeout(3000)
             
+            # Click "Muir College" directly from the list
+            print("   → Selecting Muir College...")
+            page.wait_for_timeout(2000)  # Let list load
+            page.get_by_text("Muir College").click(timeout=10000)
+            page.wait_for_timeout(5000)  # Let insights page load
+            
+            # Wait for insights page to settle
             try:
-                # PRIMARY METHOD: sds-global-search
-                print("   → Trying primary search method (sds-global-search)...")
-                page.wait_for_selector("sds-global-search", state="attached", timeout=20000)  # Check if exists first
-                page.wait_for_selector("sds-global-search", state="visible", timeout=20000)  # Increased from 15000
-                page.wait_for_timeout(3000)  # Increased from 2000
-                
-                page.locator("sds-global-search").click()
-                page.wait_for_timeout(2000)  # Increased from 1000
-                
-                page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=15000)  # Increased from 10000
-                page.locator("[data-test=\"global-search-field\"]").fill("Muir")
-                page.wait_for_timeout(3000)  # Increased from 2000
-                
-                print("  ✓ Primary search method successful")
-                search_method_used = "primary"
-                
-            except Exception as e:
-                print(f"  ⚠ Primary search failed: {e}")
-                
-                try:
-                    # FALLBACK METHOD 1: magniGlass icon
-                    print("   → Trying fallback method 1 (magniGlass)...")
-                    
-                    page.wait_for_selector("#magniGlass", state="attached", timeout=15000)  # Check if exists
-                    page.locator("#magniGlass").click(timeout=15000)  # Increased from 10000
-                    page.wait_for_timeout(2000)  # Increased from 1000
-                    
-                    page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=15000)  # Increased from 10000
-                    page.locator("[data-test=\"global-search-field\"]").fill("Muir")
-                    page.wait_for_timeout(3000)  # Increased from 2000
-                    
-                    # Click on Muir College cell in search results
-                    print("   → Clicking on Muir College cell...")
-                    page.wait_for_selector("[role=\"cell\"]", state="visible", timeout=15000)  # Wait for any cell first
-                    page.get_by_role("cell", name="Muir College").click(timeout=15000)  # Increased from 10000
-                    page.wait_for_timeout(3000)  # Increased from 2000
-                    
-                    print("  ✓ Fallback method 1 successful")
-                    search_method_used = "fallback1"
-                    
-                except Exception as e2:
-                    print(f"  ⚠ Fallback method 1 also failed: {e2}")
-                    
-                    try:
-                        # FALLBACK METHOD 2: Analysis panel (most different)
-                        print("   → Trying fallback method 2 (analysis panel)...")
-                        
-                        # Click analysis panel
-                        page.wait_for_selector("[data-test=\"analysis\"]", state="attached", timeout=15000)  # Check if exists
-                        page.wait_for_selector("[data-test=\"analysis\"]", state="visible", timeout=15000)  # Increased from 10000
-                        page.locator("[data-test=\"analysis\"]").click(timeout=10000)  # Increased from 5000
-                        page.wait_for_timeout(3000)  # Increased from 2000
-                        
-                        # Use analysis search input
-                        page.wait_for_selector("[data-test=\"search-input\"]", state="visible", timeout=15000)  # Increased from 10000
-                        page.locator("[data-test=\"search-input\"]").click()
-                        page.wait_for_timeout(1000)  # Increased from 500
-                        page.locator("[data-test=\"search-input\"]").fill("Muir")
-                        page.wait_for_timeout(3000)  # Increased from 2000
-                        
-                        # Click on Muir College cell
-                        print("   → Clicking on Muir College cell...")
-                        page.wait_for_selector("[role=\"cell\"]", state="visible", timeout=15000)  # Wait for any cell
-                        page.get_by_role("cell", name="Muir College").click(timeout=15000)  # Increased from 10000
-                        page.wait_for_timeout(4000)  # Increased from 3000
-                        
-                        print("  ✓ Fallback method 2 successful (analysis panel)")
-                        search_method_used = "fallback2_analysis"
-                        
-                    except Exception as e3:
-                        print(f"  ✗ All search methods failed!")
-                        print(f"     Primary: {e}")
-                        print(f"     Fallback 1: {e2}")
-                        print(f"     Fallback 2: {e3}")
-                        raise Exception("All three search methods failed")
+                page.wait_for_load_state("networkidle", timeout=15000)
+            except:
+                print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            # Click insights button (only needed for primary and fallback1)
-            if search_method_used in ["primary", "fallback1"]:
-                print("   Opening insights page...")
-                page.wait_for_selector("button:has-text('insights')", state="visible", timeout=15000)  # Increased from 10000
-                page.get_by_role("button").filter(has_text="insights").click()
-                page.wait_for_timeout(8000)  # Increased from 5000
-                
-                try:
-                    page.wait_for_load_state("networkidle", timeout=15000)  # Increased from 10000
-                except:
-                    print("  ⚠ Network still active (normal for SPAs), continuing...")
-                
-                page.wait_for_timeout(5000)  # Increased from 3000
-            else:
-                print("  ℹ Insights button not needed (using analysis panel)")
-                page.wait_for_timeout(5000)  # Give analysis panel time to load data
+            page.wait_for_timeout(3000)
+            print("  ✓ Muir College insights loaded")
             
             # Download CSV
             print("   Downloading CSV...")
