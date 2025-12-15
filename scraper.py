@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Muir College Solar Data Scraper for GitHub Actions
-Automatically updates AUTH_STATE secret when cookies expire
+Automatically updates AUTH_STATE secret when cookies expire - ZERO MAINTENANCE!
 """
 
 import os
