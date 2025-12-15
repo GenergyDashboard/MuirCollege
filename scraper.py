@@ -212,13 +212,13 @@ def run_playwright():
             
             # Wait for network to settle
             try:
-                page.wait_for_load_state("networkidle", timeout=20000)
+                page.wait_for_load_state("networkidle", timeout=30000)
             except:
                 print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            # Give page extra time to fully render
+            # Give page time to fully render
             print("   Waiting for page to fully render...")
-            page.wait_for_timeout(10000)
+            page.wait_for_timeout(15000)
             
             # Handle potential "OK" button (notifications, cookie banners, etc.)
             try:
@@ -226,37 +226,101 @@ def run_playwright():
                 if ok_button.is_visible(timeout=5000):
                     print("   → Clicking 'OK' button (notification/banner)...")
                     ok_button.click(timeout=3000)
-                    page.wait_for_timeout(3000)
+                    page.wait_for_timeout(5000)
                     print("  ✓ OK button clicked")
             except:
-                # OK button not present or not needed
                 pass
             
             # Additional wait for UI to stabilize
-            page.wait_for_timeout(5000)
+            page.wait_for_timeout(8000)
             
-            # NEW SIMPLIFIED METHOD: Click analysis panel → insights → Muir College
-            print("   Navigating to Muir College via analysis panel...")
+            # Navigate to Muir College - Try analysis methods first, then search fallback
+            print("   Navigating to Muir College...")
             
-            # Click "insights" text within analysis panel
-            print("   → Clicking analysis insights...")
-            page.wait_for_selector("[data-test=\"analysis\"]", state="visible", timeout=20000)
-            page.locator("[data-test=\"analysis\"]").get_by_text("insights").click(timeout=10000)
-            page.wait_for_timeout(3000)
+            navigation_success = False
             
-            # Click "Muir College" directly from the list
-            print("   → Selecting Muir College...")
-            page.wait_for_timeout(2000)  # Let list load
-            page.get_by_text("Muir College").click(timeout=10000)
-            page.wait_for_timeout(5000)  # Let insights page load
+            # PRIMARY METHOD: Try various analysis panel approaches
+            analysis_methods = [
+                {
+                    "name": "analysis insights text",
+                    "action": lambda: (
+                        page.locator("[data-test=\"analysis\"]").get_by_text("insights").click(timeout=10000),
+                        page.wait_for_timeout(3000),
+                        page.get_by_text("Muir College").click(timeout=10000),
+                        page.wait_for_timeout(5000)
+                    )
+                },
+                {
+                    "name": "analysis data-test click",
+                    "action": lambda: (
+                        page.locator("[data-test=\"analysis\"]").click(timeout=10000),
+                        page.wait_for_timeout(3000),
+                        page.get_by_text("Muir College").click(timeout=10000),
+                        page.wait_for_timeout(5000)
+                    )
+                },
+                {
+                    "name": "Analysis text click",
+                    "action": lambda: (
+                        page.get_by_text("Analysis").click(timeout=10000),
+                        page.wait_for_timeout(3000),
+                        page.get_by_text("Muir College").click(timeout=10000),
+                        page.wait_for_timeout(5000)
+                    )
+                }
+            ]
+            
+            # Try each analysis method
+            for method in analysis_methods:
+                try:
+                    print(f"   → Trying analysis method: {method['name']}...")
+                    page.wait_for_selector("[data-test=\"analysis\"]", state="visible", timeout=20000)
+                    method['action']()
+                    print(f"  ✓ Analysis method '{method['name']}' successful")
+                    navigation_success = True
+                    break
+                except Exception as e:
+                    print(f"  ⚠ Analysis method '{method['name']}' failed: {str(e)[:100]}")
+                    continue
+            
+            # FALLBACK METHOD: Direct search field (from your working recording)
+            if not navigation_success:
+                try:
+                    print("   → Trying direct search field method...")
+                    
+                    # Click search field directly (no need to click search icon first)
+                    page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=30000)
+                    page.locator("[data-test=\"global-search-field\"]").click(timeout=10000)
+                    page.wait_for_timeout(2000)
+                    
+                    # Fill with Muir
+                    page.locator("[data-test=\"global-search-field\"]").fill("Muir")
+                    page.wait_for_timeout(3000)
+                    
+                    # Click insights button
+                    print("   → Clicking insights button...")
+                    page.wait_for_selector("button:has-text('insights')", state="visible", timeout=20000)
+                    page.get_by_role("button").filter(has_text="insights").click()
+                    page.wait_for_timeout(8000)
+                    
+                    print("  ✓ Direct search field method successful")
+                    navigation_success = True
+                    
+                except Exception as e2:
+                    print(f"  ✗ Search field method also failed: {e2}")
+                    raise Exception("All navigation methods failed")
+            
+            if not navigation_success:
+                raise Exception("Failed to navigate to Muir College")
             
             # Wait for insights page to settle
+            print("   Waiting for insights page to load...")
             try:
-                page.wait_for_load_state("networkidle", timeout=15000)
+                page.wait_for_load_state("networkidle", timeout=20000)
             except:
                 print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            page.wait_for_timeout(3000)
+            page.wait_for_timeout(5000)
             print("  ✓ Muir College insights loaded")
             
             # Download CSV
