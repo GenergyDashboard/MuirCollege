@@ -208,146 +208,33 @@ def run_playwright():
             
             # Navigate to monitoring page
             print("   Navigating to monitoring page...")
-            page.goto("https://genergy.enerest.world/monitoring", timeout=120000)  # INCREASED to 2 minutes
-            page.wait_for_load_state("domcontentloaded", timeout=120000)  # INCREASED to 2 minutes
+            page.goto("https://genergy.enerest.world/monitoring", timeout=60000)
+            page.wait_for_load_state("domcontentloaded", timeout=30000)
             
             try:
-                page.wait_for_load_state("networkidle", timeout=40000)  # INCREASED to 40 seconds
+                page.wait_for_load_state("networkidle", timeout=10000)
             except:
                 print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            page.wait_for_timeout(12000)  # INCREASED to 12 seconds for safety
+            page.wait_for_timeout(5000)
             
-            # Check if we're actually on the monitoring page (auth check)
-            current_url = page.url
-            print(f"  ℹ Current URL: {current_url}")
-            
-            if "auth" in current_url or "login" in current_url:
-                print("  ✗ Redirected to login page - AUTH_STATE has expired!")
-                print("  ℹ Auth state needs to be refreshed. Performing login...")
-                # The script should have already tried login if skip_login was False
-                # If we're here, it means the saved auth state was invalid
-                raise Exception("Auth state expired - saved cookies are no longer valid")
-            
-            print("  ✓ Successfully on monitoring page")
-            
-            # Search for Muir - with multiple fallback strategies
+            # Search for Muir
             print("   Searching for 'Muir' site...")
+            page.wait_for_selector("sds-global-search", state="visible", timeout=30000)
+            page.wait_for_timeout(2000)
             
-            # Take diagnostic screenshot
-            try:
-                diag_screenshot = f"data/before_search_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-                page.screenshot(path=diag_screenshot)
-                print(f"  ℹ Diagnostic screenshot: {diag_screenshot}")
-            except:
-                pass
+            page.locator("sds-global-search").click()
+            page.wait_for_timeout(1000)
             
-            # Try multiple selectors for the search component
-            search_selectors = [
-                "sds-global-search",
-                "[data-test='global-search']",
-                "input[placeholder*='Search']",
-                "input[type='search']",
-                "[class*='global-search']",
-                "[class*='search-component']",
-                "header input",
-                ".search-input"
-            ]
+            page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=10000)
+            page.locator("[data-test=\"global-search-field\"]").fill("Muir")
+            page.wait_for_timeout(2000)
             
-            search_found = False
-            for selector in search_selectors:
-                try:
-                    print(f"  → Trying selector: {selector}")
-                    element = page.locator(selector).first
-                    
-                    # Check if element exists
-                    if element.count() > 0:
-                        print(f"  ✓ Found search element with: {selector}")
-                        
-                        # Wait for it to be visible with longer timeout
-                        element.wait_for(state="visible", timeout=60000)
-                        page.wait_for_timeout(3000)
-                        
-                        # Try to click it
-                        element.click(timeout=10000)
-                        page.wait_for_timeout(2000)
-                        search_found = True
-                        break
-                except Exception as e:
-                    print(f"  ✗ Failed with {selector}: {e}")
-                    continue
-            
-            if not search_found:
-                print("  ⚠ Could not find search element with any selector!")
-                print("  ℹ Dumping page content for diagnosis...")
-                try:
-                    html_dump = page.content()
-                    with open("data/page_dump.html", "w", encoding="utf-8") as f:
-                        f.write(html_dump)
-                    print("  ✓ Page HTML saved to: data/page_dump.html")
-                except:
-                    pass
-                
-                raise Exception("Search element not found - page may not have loaded correctly or auth expired")
-            
-            # Now try to find and fill the search field
-            print("  → Looking for search input field...")
-            search_field_selectors = [
-                "[data-test=\"global-search-field\"]",
-                "input[placeholder*='Search']",
-                "input[type='search']",
-                "input[type='text']"
-            ]
-            
-            field_found = False
-            for selector in search_field_selectors:
-                try:
-                    field = page.locator(selector).first
-                    if field.count() > 0:
-                        field.wait_for(state="visible", timeout=30000)
-                        field.fill("Muir")
-                        page.wait_for_timeout(2000)
-                        print(f"  ✓ Filled search field with: {selector}")
-                        field_found = True
-                        break
-                except:
-                    continue
-            
-            if not field_found:
-                raise Exception("Could not find search input field")
-            
-            # Click insights button - with fallback selectors
+            # Click insights button
             print("   Opening insights page...")
-            
-            insights_selectors = [
-                "button:has-text('insights')",
-                "button:has-text('Insights')",
-                "[data-test='insights-button']",
-                "a:has-text('insights')",
-                "a:has-text('Insights')",
-                "[href*='insights']",
-                "button[aria-label*='insights']"
-            ]
-            
-            insights_found = False
-            for selector in insights_selectors:
-                try:
-                    print(f"  → Trying insights selector: {selector}")
-                    btn = page.locator(selector).first
-                    if btn.count() > 0:
-                        btn.wait_for(state="visible", timeout=60000)
-                        btn.click(timeout=10000)
-                        page.wait_for_timeout(5000)
-                        print(f"  ✓ Clicked insights with: {selector}")
-                        insights_found = True
-                        break
-                except Exception as e:
-                    print(f"  ✗ Failed with {selector}: {e}")
-                    continue
-            
-            if not insights_found:
-                print("  ⚠ Could not find insights button!")
-                raise Exception("Insights button not found")
+            page.wait_for_selector("button:has-text('insights')", state="visible", timeout=10000)
+            page.get_by_role("button").filter(has_text="insights").click()
+            page.wait_for_timeout(5000)
             
             try:
                 page.wait_for_load_state("networkidle", timeout=10000)
@@ -440,19 +327,6 @@ if __name__ == "__main__":
         
     except Exception as e:
         print(f"\n❌ Scraper failed: {e}")
-        
-        # Check if it's an auth-related issue
-        if "auth" in str(e).lower() or "expired" in str(e).lower():
-            print("\n" + "="*60)
-            print("🔑 AUTH STATE EXPIRED")
-            print("="*60)
-            print("The saved AUTH_STATE secret has expired.")
-            print("SOLUTION: Delete the AUTH_STATE secret in GitHub:")
-            print("  1. Go to: Settings → Secrets → Actions")
-            print("  2. Delete the AUTH_STATE secret")
-            print("  3. Next run will perform fresh login and save new cookies")
-            print("="*60 + "\n")
-        
         print("=" * 60)
         import traceback
         traceback.print_exc()
