@@ -2,6 +2,7 @@
 """
 Muir College Solar Data Scraper for GitHub Actions
 Uses file-based auth state (same as 1st Avenue Spar) - ZERO MAINTENANCE!
+FIXED VERSION - Robust for GitHub Actions environment
 """
 
 import os
@@ -35,7 +36,7 @@ def run_playwright():
     
     if os.path.exists(auth_state_file):
         try:
-            print("🔓 Found saved authentication state")
+            print("🔐 Found saved authentication state")
             
             # Read and decode the auth state
             with open(auth_state_file, 'r') as f:
@@ -103,50 +104,79 @@ def run_playwright():
                     print("  ✓ Session still valid, skipping login")
             
             if not use_auth_state:
-                # Normal login process (SAME AS COLLECTOR.PY)
+                # Normal login process - FIXED VERSION
                 print("   Navigating to login page...")
                 page.goto("https://pass.enerest.world/auth/realms/pass/protocol/openid-connect/auth?response_type=code&client_id=1d699ca7-87c8-4d6d-98dc-32a4cc316907&state=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&redirect_uri=https%3A%2F%2Fgenergy.enerest.world%2Findex.html&scope=openid%20profile&code_challenge=66CPKTUs7xUuUNmX1CvSRmQXO8ZllglERBHknop_ikg&code_challenge_method=S256&nonce=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&responseMode=query", 
-                         wait_until="domcontentloaded", 
-                         timeout=100000)
+                         wait_until="networkidle",  # Changed from domcontentloaded
+                         timeout=60000)
                 
                 import time
-                time.sleep(2)
+                print("   Waiting for login page to fully render...")
+                time.sleep(5)  # Added explicit wait
                 
-                # Fill in credentials with fallbacks (SAME AS COLLECTOR.PY)
-                print("   Filling in credentials...")
+                # Verify we're on the login page
+                print(f"   Current URL: {page.url}")
+                if "pass.enerest.world" not in page.url:
+                    raise Exception("Failed to reach login page")
+                
+                # Fill in credentials with better error handling
+                print("   Filling in email...")
                 try:
-                    page.get_by_role("textbox", name="Email").click(timeout=100000)
+                    # Wait for the form to be visible first
+                    page.wait_for_selector('input[type="text"], input[name="username"]', 
+                                          state="visible", timeout=20000)
+                    time.sleep(1)
+                    
+                    page.get_by_role("textbox", name="Email").click(timeout=10000)
                     page.get_by_role("textbox", name="Email").fill(SOLAR_EMAIL)
                     print("  ✓ Email filled using role selector")
                 except Exception as e:
-                    print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    page.locator('input[type="text"]').first.fill(SOLAR_EMAIL, timeout=100000)
+                    print(f"  ⚠ Role selector failed: {str(e)[:100]}")
+                    print("  ↳ Trying fallback...")
+                    # More specific fallback
+                    email_input = page.locator('input[type="text"], input[name="username"]').first
+                    email_input.wait_for(state="visible", timeout=10000)
+                    email_input.fill(SOLAR_EMAIL)
                     print("  ✓ Email filled using fallback")
                 
                 time.sleep(1)
                 
+                print("   Filling in password...")
                 try:
-                    page.get_by_role("textbox", name="Password").click(timeout=100000)
+                    page.get_by_role("textbox", name="Password").click(timeout=10000)
                     page.get_by_role("textbox", name="Password").fill(SOLAR_PASSWORD)
                     print("  ✓ Password filled using role selector")
                 except Exception as e:
-                    print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    page.locator('input[type="password"]').first.fill(SOLAR_PASSWORD, timeout=100000)
+                    print(f"  ⚠ Role selector failed: {str(e)[:100]}")
+                    print("  ↳ Trying fallback...")
+                    # More specific fallback
+                    password_input = page.locator('input[type="password"], input[name="password"]').first
+                    password_input.wait_for(state="visible", timeout=10000)
+                    password_input.fill(SOLAR_PASSWORD)
                     print("  ✓ Password filled using fallback")
                 
                 time.sleep(1)
                 
                 print("   Clicking login button...")
                 try:
-                    page.get_by_role("button", name="Log In").click(timeout=10000)
+                    login_button = page.get_by_role("button", name="Log In")
+                    login_button.wait_for(state="visible", timeout=10000)
+                    login_button.click(timeout=5000)
                     print("  ✓ Login button clicked using role selector")
                 except Exception as e:
-                    print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    page.locator('button[type="submit"]').first.click(timeout=100000)
+                    print(f"  ⚠ Role selector failed: {str(e)[:100]}")
+                    print("  ↳ Trying fallback...")
+                    submit_button = page.locator('button[type="submit"], button:has-text("Log In")').first
+                    submit_button.wait_for(state="visible", timeout=10000)
+                    submit_button.click()
                     print("  ✓ Login button clicked using fallback")
                 
                 print("   Waiting for login to complete...")
-                time.sleep(5)
+                time.sleep(8)  # Increased from 5 (GitHub Actions is slower)
+                
+                # Verify login succeeded
+                print("   Verifying login...")
+                time.sleep(2)
                 
                 # Navigate to monitoring after login
                 print("   Navigating to monitoring page...")
@@ -154,7 +184,7 @@ def run_playwright():
                          wait_until="domcontentloaded", 
                          timeout=60000)
                 
-                time.sleep(3)
+                time.sleep(5)  # Increased wait time
             
             # Now we're on the monitoring page
             print("   Waiting for page to fully render...")
@@ -163,7 +193,7 @@ def run_playwright():
             import time
             time.sleep(5)
             
-            # Navigate to Muir College (SAME AS COLLECTOR.PY)
+            # Navigate to Muir College
             print("   Searching for Muir College...")
             
             try:
@@ -234,8 +264,6 @@ def run_playwright():
             # Save the current auth state for next time (SAME AS 1ST AVENUE SPAR)
             if not use_auth_state:
                 try:
-                    import base64
-                    
                     print("   💾 Saving authentication state for next run...")
                     
                     # Save as encoded text file
