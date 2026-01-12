@@ -107,7 +107,7 @@ def run_playwright():
                 print("   Navigating to login page...")
                 page.goto("https://pass.enerest.world/auth/realms/pass/protocol/openid-connect/auth?response_type=code&client_id=1d699ca7-87c8-4d6d-98dc-32a4cc316907&state=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&redirect_uri=https%3A%2F%2Fgenergy.enerest.world%2Findex.html&scope=openid%20profile&code_challenge=66CPKTUs7xUuUNmX1CvSRmQXO8ZllglERBHknop_ikg&code_challenge_method=S256&nonce=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&responseMode=query", 
                          wait_until="domcontentloaded", 
-                         timeout=60000)
+                         timeout=100000)
                 
                 import time
                 time.sleep(2)
@@ -115,23 +115,23 @@ def run_playwright():
                 # Fill in credentials with fallbacks (SAME AS COLLECTOR.PY)
                 print("   Filling in credentials...")
                 try:
-                    page.get_by_role("textbox", name="Email").click(timeout=10000)
+                    page.get_by_role("textbox", name="Email").click(timeout=100000)
                     page.get_by_role("textbox", name="Email").fill(SOLAR_EMAIL)
                     print("  ✓ Email filled using role selector")
                 except Exception as e:
                     print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    page.locator('input[type="text"]').first.fill(SOLAR_EMAIL, timeout=5000)
+                    page.locator('input[type="text"]').first.fill(SOLAR_EMAIL, timeout=100000)
                     print("  ✓ Email filled using fallback")
                 
                 time.sleep(1)
                 
                 try:
-                    page.get_by_role("textbox", name="Password").click(timeout=10000)
+                    page.get_by_role("textbox", name="Password").click(timeout=100000)
                     page.get_by_role("textbox", name="Password").fill(SOLAR_PASSWORD)
                     print("  ✓ Password filled using role selector")
                 except Exception as e:
                     print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    page.locator('input[type="password"]').first.fill(SOLAR_PASSWORD, timeout=5000)
+                    page.locator('input[type="password"]').first.fill(SOLAR_PASSWORD, timeout=100000)
                     print("  ✓ Password filled using fallback")
                 
                 time.sleep(1)
@@ -142,7 +142,7 @@ def run_playwright():
                     print("  ✓ Login button clicked using role selector")
                 except Exception as e:
                     print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    page.locator('button[type="submit"]').first.click(timeout=5000)
+                    page.locator('button[type="submit"]').first.click(timeout=100000)
                     print("  ✓ Login button clicked using fallback")
                 
                 print("   Waiting for login to complete...")
