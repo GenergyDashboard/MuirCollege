@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
 """
 Muir College Solar Data Scraper for GitHub Actions
-Automatically updates AUTH_STATE secret when cookies expire - ZERO MAINTENANCE!
+Uses file-based auth state (same as 1st Avenue Spar) - ZERO MAINTENANCE!
 """
 
 import os
 import json
 import base64
-import requests
 from datetime import datetime
 from playwright.sync_api import sync_playwright
-from nacl import encoding, public
 
 # Get credentials from environment variables (GitHub Secrets)
 SOLAR_EMAIL = os.getenv('SOLAR_EMAIL')
 SOLAR_PASSWORD = os.getenv('SOLAR_PASSWORD')
-AUTH_STATE_SECRET = os.getenv('AUTH_STATE')
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')  # Automatically provided by GitHub Actions
-GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY')  # Format: owner/repo
 
 if not SOLAR_EMAIL or not SOLAR_PASSWORD:
     raise ValueError("Missing SOLAR_EMAIL or SOLAR_PASSWORD environment variables")
@@ -26,211 +21,120 @@ if not SOLAR_EMAIL or not SOLAR_PASSWORD:
 CSV_DOWNLOAD_PATH = "data/downloads"
 LATEST_CSV_FILE = "data/solar_export_latest.csv"
 
-def encrypt_secret(public_key: str, secret_value: str) -> str:
-    """Encrypt a secret using GitHub's public key"""
-    public_key_obj = public.PublicKey(public_key.encode("utf-8"), encoding.Base64Encoder())
-    sealed_box = public.SealedBox(public_key_obj)
-    encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
-    return base64.b64encode(encrypted).decode("utf-8")
-
-def update_github_secret(secret_name: str, secret_value: str):
-    """Update a GitHub repository secret via API"""
-    if not GITHUB_TOKEN or not GITHUB_REPOSITORY:
-        print("  ⚠ Cannot update secret: Missing GITHUB_TOKEN or GITHUB_REPOSITORY")
-        return False
-    
-    try:
-        owner, repo = GITHUB_REPOSITORY.split('/')
-        base_url = f"https://api.github.com/repos/{owner}/{repo}"
-        headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
-        }
-        
-        # Get repository public key
-        print(f"  → Getting repository public key...")
-        pubkey_response = requests.get(
-            f"{base_url}/actions/secrets/public-key",
-            headers=headers
-        )
-        
-        if pubkey_response.status_code != 200:
-            print(f"  ✗ Failed to get public key: {pubkey_response.status_code}")
-            return False
-        
-        pubkey_data = pubkey_response.json()
-        public_key = pubkey_data['key']
-        key_id = pubkey_data['key_id']
-        
-        # Encrypt the secret value
-        print(f"  → Encrypting new auth state...")
-        encrypted_value = encrypt_secret(public_key, secret_value)
-        
-        # Update the secret
-        print(f"  → Updating {secret_name} secret...")
-        update_response = requests.put(
-            f"{base_url}/actions/secrets/{secret_name}",
-            headers=headers,
-            json={
-                "encrypted_value": encrypted_value,
-                "key_id": key_id
-            }
-        )
-        
-        if update_response.status_code in [201, 204]:
-            print(f"  ✓ Successfully updated {secret_name} secret!")
-            print("  ✓ Future runs will use new cookies automatically!")
-            return True
-        else:
-            print(f"  ✗ Failed to update secret: {update_response.status_code}")
-            return False
-            
-    except Exception as e:
-        print(f"  ✗ Error updating secret: {e}")
-        return False
-
-def load_auth_state():
-    """Load saved auth state from GitHub Secret"""
-    if AUTH_STATE_SECRET:
-        try:
-            decoded = base64.b64decode(AUTH_STATE_SECRET).decode()
-            storage_state = json.loads(decoded)
-            print("  ✓ Loaded auth state from GitHub Secret (skipping login)")
-            return storage_state
-        except Exception as e:
-            print(f"  ⚠ Could not load auth state from secret: {e}")
-            print("  ↳ Will perform manual login and save new auth state")
-    else:
-        print("  ℹ No AUTH_STATE secret found, will perform manual login")
-    return None
-
-def save_auth_state_to_secret(context):
-    """Save auth state to GitHub Secret after successful login"""
-    try:
-        print("\n" + "="*60)
-        print("💾 SAVING NEW AUTH STATE TO GITHUB SECRET")
-        print("="*60)
-        
-        # Get storage state
-        storage_state = context.storage_state()
-        auth_state_str = json.dumps(storage_state)
-        encoded = base64.b64encode(auth_state_str.encode()).decode()
-        
-        # Update GitHub secret
-        success = update_github_secret('AUTH_STATE', encoded)
-        
-        if success:
-            print("="*60)
-            print("🎉 AUTH STATE AUTO-UPDATED!")
-            print("   Next run will skip login automatically!")
-            print("="*60 + "\n")
-        else:
-            print("="*60)
-            print("⚠️  Could not auto-update secret")
-            print("   Copy this value and update AUTH_STATE manually:")
-            print(f"\n{encoded[:100]}...")
-            print("="*60 + "\n")
-        
-        return success
-        
-    except Exception as e:
-        print(f"  ⚠ Could not save auth state: {e}")
-        return False
-
 def run_playwright():
     """Run Playwright to download CSV data from Genergy portal"""
     print("🤖 Starting Playwright browser automation...")
     
+    # Create data directory
+    os.makedirs('data', exist_ok=True)
+    os.makedirs('data/daily', exist_ok=True)
+    
+    # Check for saved auth state (SAME AS 1ST AVENUE SPAR)
+    use_auth_state = False
+    auth_state_file = 'data/auth_state_encoded.txt'
+    
+    if os.path.exists(auth_state_file):
+        try:
+            print("🔓 Found saved authentication state")
+            
+            # Read and decode the auth state
+            with open(auth_state_file, 'r') as f:
+                encoded = f.read()
+            
+            auth_data = base64.b64decode(encoded).decode()
+            
+            # Save to temp file
+            with open('auth_state_temp.json', 'w') as f:
+                f.write(auth_data)
+            
+            use_auth_state = True
+            print("✅ Using saved authentication state from repository")
+        except Exception as e:
+            print(f"⚠️  Could not use auth state: {e}")
+            print("   Will login normally")
+    else:
+        print("ℹ️  No saved auth state found, will login normally")
+    
     with sync_playwright() as p:
         print("   Launching Chromium browser...")
-        browser = p.chromium.launch(headless=True)
         
-        # Load saved auth state if available
-        storage_state = load_auth_state()
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-blink-features=AutomationControlled',
+            ]
+        )
         
-        if storage_state:
-            # Use saved auth state
+        # Create context with or without saved state
+        if use_auth_state and os.path.exists('auth_state_temp.json'):
+            print("  ✓ Loaded auth state from file (skipping login)")
             context = browser.new_context(
-                accept_downloads=True,
-                storage_state=storage_state
+                storage_state='auth_state_temp.json',
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                viewport={'width': 1920, 'height': 1080},
             )
-            skip_login = True
         else:
-            # Fresh context
-            context = browser.new_context(accept_downloads=True)
-            skip_login = False
+            context = browser.new_context(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                viewport={'width': 1920, 'height': 1080},
+            )
         
         page = context.new_page()
         
         try:
-            if not skip_login:
-                # Perform manual login - USING EXACT URL FROM WORKING COLLECTOR.PY
+            if use_auth_state:
+                # Try to navigate directly to monitoring page
+                print("   Navigating to monitoring page...")
+                page.goto("https://genergy.enerest.world/monitoring", 
+                         wait_until="domcontentloaded", 
+                         timeout=60000)
+                
+                # Check if we're actually logged in
+                import time
+                time.sleep(3)
+                current_url = page.url
+                
+                if "login" in current_url or "auth" in current_url:
+                    print("  ⚠️  Saved session expired, logging in normally...")
+                    use_auth_state = False
+                else:
+                    print("  ✓ Session still valid, skipping login")
+            
+            if not use_auth_state:
+                # Normal login process (SAME AS COLLECTOR.PY)
                 print("   Navigating to login page...")
                 page.goto("https://pass.enerest.world/auth/realms/pass/protocol/openid-connect/auth?response_type=code&client_id=1d699ca7-87c8-4d6d-98dc-32a4cc316907&state=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&redirect_uri=https%3A%2F%2Fgenergy.enerest.world%2Findex.html&scope=openid%20profile&code_challenge=66CPKTUs7xUuUNmX1CvSRmQXO8ZllglERBHknop_ikg&code_challenge_method=S256&nonce=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&responseMode=query", 
-                          timeout=60000)
+                         wait_until="domcontentloaded", 
+                         timeout=60000)
                 
-                print("   Waiting for page load...")
-                page.wait_for_load_state("networkidle", timeout=60000)
-                page.wait_for_timeout(2000)
+                import time
+                time.sleep(2)
                 
+                # Fill in credentials with fallbacks (SAME AS COLLECTOR.PY)
                 print("   Filling in credentials...")
-                # Use multiple fallback selectors like collector.py
                 try:
                     page.get_by_role("textbox", name="Email").click(timeout=10000)
                     page.get_by_role("textbox", name="Email").fill(SOLAR_EMAIL)
                     print("  ✓ Email filled using role selector")
                 except Exception as e:
                     print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    email_selectors = [
-                        'input[type="text"]',
-                        'input[placeholder*="Mail" i]',
-                        'input[name*="mail" i]',
-                        'input[id*="mail" i]'
-                    ]
-                    
-                    email_filled = False
-                    for selector in email_selectors:
-                        try:
-                            page.locator(selector).first.fill(SOLAR_EMAIL, timeout=5000)
-                            print(f"  ✓ Email filled using selector: {selector}")
-                            email_filled = True
-                            break
-                        except:
-                            continue
-                    
-                    if not email_filled:
-                        raise Exception("Could not find email input field")
+                    page.locator('input[type="text"]').first.fill(SOLAR_EMAIL, timeout=5000)
+                    print("  ✓ Email filled using fallback")
                 
-                page.wait_for_timeout(1000)
+                time.sleep(1)
                 
-                print("   Filling password...")
                 try:
                     page.get_by_role("textbox", name="Password").click(timeout=10000)
                     page.get_by_role("textbox", name="Password").fill(SOLAR_PASSWORD)
                     print("  ✓ Password filled using role selector")
                 except Exception as e:
                     print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    password_selectors = [
-                        'input[type="password"]',
-                        'input[placeholder*="Pass" i]',
-                        'input[name*="pass" i]',
-                        'input[id*="pass" i]'
-                    ]
-                    
-                    password_filled = False
-                    for selector in password_selectors:
-                        try:
-                            page.locator(selector).first.fill(SOLAR_PASSWORD, timeout=5000)
-                            print(f"  ✓ Password filled using selector: {selector}")
-                            password_filled = True
-                            break
-                        except:
-                            continue
-                    
-                    if not password_filled:
-                        raise Exception("Could not find password input field")
+                    page.locator('input[type="password"]').first.fill(SOLAR_PASSWORD, timeout=5000)
+                    print("  ✓ Password filled using fallback")
                 
-                page.wait_for_timeout(1000)
+                time.sleep(1)
                 
                 print("   Clicking login button...")
                 try:
@@ -238,71 +142,52 @@ def run_playwright():
                     print("  ✓ Login button clicked using role selector")
                 except Exception as e:
                     print(f"  ⚠ Role selector failed, trying fallback: {e}")
-                    login_selectors = [
-                        'button:has-text("Log In")',
-                        'button:has-text("Anmelden")',
-                        'button[type="submit"]',
-                        'input[type="submit"]'
-                    ]
-                    
-                    login_clicked = False
-                    for selector in login_selectors:
-                        try:
-                            page.locator(selector).first.click(timeout=5000)
-                            print(f"  ✓ Login button clicked using selector: {selector}")
-                            login_clicked = True
-                            break
-                        except:
-                            continue
-                    
-                    if not login_clicked:
-                        raise Exception("Could not find login button")
+                    page.locator('button[type="submit"]').first.click(timeout=5000)
+                    print("  ✓ Login button clicked using fallback")
                 
                 print("   Waiting for login to complete...")
-                page.wait_for_timeout(5000)
+                time.sleep(5)
                 
-                # Save new auth state to GitHub Secret automatically!
-                save_auth_state_to_secret(context)
+                # Navigate to monitoring after login
+                print("   Navigating to monitoring page...")
+                page.goto("https://genergy.enerest.world/monitoring", 
+                         wait_until="domcontentloaded", 
+                         timeout=60000)
+                
+                time.sleep(3)
             
-            # Navigate to monitoring page
-            print("   Navigating to monitoring page...")
-            page.goto("https://genergy.enerest.world/monitoring", timeout=60000)
-            
-            print("   Waiting for page to fully load...")
+            # Now we're on the monitoring page
+            print("   Waiting for page to fully render...")
             page.wait_for_load_state("domcontentloaded", timeout=30000)
             
-            try:
-                page.wait_for_load_state("networkidle", timeout=10000)
-            except:
-                print("  ⚠ Network still active (normal for SPAs), continuing...")
+            import time
+            time.sleep(5)
             
-            page.wait_for_timeout(5000)
-            
-            # Navigate to Muir College - USING EXACT SELECTORS FROM WORKING COLLECTOR.PY
+            # Navigate to Muir College (SAME AS COLLECTOR.PY)
             print("   Searching for Muir College...")
             
             try:
                 print("   → Waiting for search component to be visible...")
                 page.wait_for_selector("sds-global-search", state="visible", timeout=30000)
-                page.wait_for_timeout(2000)
+                time.sleep(2)
                 
                 print("   → Clicking search component...")
                 page.locator("sds-global-search").click()
-                page.wait_for_timeout(1000)
+                time.sleep(1)
                 
                 print("   → Waiting for search field to be visible...")
                 page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=10000)
                 
                 print("   → Filling search field with 'Muir'...")
                 page.locator("[data-test=\"global-search-field\"]").fill("Muir")
-                page.wait_for_timeout(2000)
+                time.sleep(2)
                 
                 print("   → Waiting for insights button to appear...")
                 page.wait_for_selector("button:has-text('insights')", state="visible", timeout=10000)
                 
                 print("   → Clicking insights button...")
                 page.get_by_role("button").filter(has_text="insights").click()
-                page.wait_for_timeout(5000)
+                time.sleep(5)
                 
                 print("  ✓ Successfully navigated to Muir College insights")
                 
@@ -317,14 +202,14 @@ def run_playwright():
             except:
                 print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            page.wait_for_timeout(3000)
+            time.sleep(3)
             print("  ✓ Muir College insights loaded")
             
             # Download CSV
             print("   Downloading CSV...")
             page.wait_for_selector("[data-test=\"menu-trigger\"]", state="visible", timeout=10000)
             page.locator("[data-test=\"menu-trigger\"]").click(timeout=5000)
-            page.wait_for_timeout(2000)
+            time.sleep(2)
             
             print("   Waiting for CSV download...")
             page.wait_for_selector("[role=\"menuitem\"]:has-text('CSV')", state="visible", timeout=10000)
@@ -346,21 +231,51 @@ def run_playwright():
             download.save_as(dated_filepath)
             print(f"  ✓ Dated copy saved: {dated_filepath}")
             
+            # Save the current auth state for next time (SAME AS 1ST AVENUE SPAR)
+            if not use_auth_state:
+                try:
+                    import base64
+                    
+                    print("   💾 Saving authentication state for next run...")
+                    
+                    # Save as encoded text file
+                    auth_json = context.storage_state()
+                    encoded = base64.b64encode(json.dumps(auth_json).encode()).decode()
+                    
+                    with open('data/auth_state_encoded.txt', 'w') as f:
+                        f.write(encoded)
+                    
+                    print("  ✓ Authentication state saved")
+                    print("     This will skip login on next run!")
+                except Exception as e:
+                    print(f"  ⚠️  Could not save auth state: {e}")
+            
             return LATEST_CSV_FILE
             
         except Exception as e:
             print(f"  ✗ Playwright error: {e}")
+            
+            # Take screenshot for debugging
             try:
                 screenshot_path = f"data/error_screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-                page.screenshot(path=screenshot_path)
+                page.screenshot(path=screenshot_path, full_page=True)
                 print(f"   Screenshot saved: {screenshot_path}")
             except:
                 pass
-            raise
+            
+            raise Exception(f"Failed to scrape: {e}")
             
         finally:
+            # Cleanup temp file
+            if os.path.exists('auth_state_temp.json'):
+                os.remove('auth_state_temp.json')
+            
+            import time
+            time.sleep(2)
             context.close()
             browser.close()
+            print("   Browser closed")
+
 
 def save_scrape_info(filepath):
     """Save information about the last successful scrape"""
