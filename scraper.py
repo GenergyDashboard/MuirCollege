@@ -104,25 +104,24 @@ def run_playwright():
                     print("  ✓ Session still valid, skipping login")
             
             if not use_auth_state:
-                # Normal login process - FIXED VERSION
+                # Normal login process - ULTRA ROBUST VERSION
                 print("   Navigating to login page...")
                 page.goto("https://pass.enerest.world/auth/realms/pass/protocol/openid-connect/auth?response_type=code&client_id=1d699ca7-87c8-4d6d-98dc-32a4cc316907&state=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&redirect_uri=https%3A%2F%2Fgenergy.enerest.world%2Findex.html&scope=openid%20profile&code_challenge=66CPKTUs7xUuUNmX1CvSRmQXO8ZllglERBHknop_ikg&code_challenge_method=S256&nonce=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&responseMode=query", 
-                         wait_until="networkidle",  # Changed from domcontentloaded
+                         wait_until="networkidle",
                          timeout=60000)
                 
                 import time
                 print("   Waiting for login page to fully render...")
-                time.sleep(5)  # Added explicit wait
+                time.sleep(5)
                 
                 # Verify we're on the login page
                 print(f"   Current URL: {page.url}")
                 if "pass.enerest.world" not in page.url:
                     raise Exception("Failed to reach login page")
                 
-                # Fill in credentials with better error handling
+                # Fill in credentials
                 print("   Filling in email...")
                 try:
-                    # Wait for the form to be visible first
                     page.wait_for_selector('input[type="text"], input[name="username"]', 
                                           state="visible", timeout=20000)
                     time.sleep(1)
@@ -133,7 +132,6 @@ def run_playwright():
                 except Exception as e:
                     print(f"  ⚠ Role selector failed: {str(e)[:100]}")
                     print("  ↳ Trying fallback...")
-                    # More specific fallback
                     email_input = page.locator('input[type="text"], input[name="username"]').first
                     email_input.wait_for(state="visible", timeout=10000)
                     email_input.fill(SOLAR_EMAIL)
@@ -149,30 +147,117 @@ def run_playwright():
                 except Exception as e:
                     print(f"  ⚠ Role selector failed: {str(e)[:100]}")
                     print("  ↳ Trying fallback...")
-                    # More specific fallback
                     password_input = page.locator('input[type="password"], input[name="password"]').first
                     password_input.wait_for(state="visible", timeout=10000)
                     password_input.fill(SOLAR_PASSWORD)
                     print("  ✓ Password filled using fallback")
                 
-                time.sleep(1)
+                time.sleep(2)
                 
+                # Click login button - try multiple strategies
                 print("   Clicking login button...")
-                try:
-                    login_button = page.get_by_role("button", name="Log In")
-                    login_button.wait_for(state="visible", timeout=10000)
-                    login_button.click(timeout=5000)
-                    print("  ✓ Login button clicked using role selector")
-                except Exception as e:
-                    print(f"  ⚠ Role selector failed: {str(e)[:100]}")
-                    print("  ↳ Trying fallback...")
-                    submit_button = page.locator('button[type="submit"], button:has-text("Log In")').first
-                    submit_button.wait_for(state="visible", timeout=10000)
-                    submit_button.click()
-                    print("  ✓ Login button clicked using fallback")
+                login_clicked = False
+                
+                # Strategy 1: Role selector
+                if not login_clicked:
+                    try:
+                        print("   → Strategy 1: Role selector...")
+                        login_button = page.get_by_role("button", name="Log In")
+                        login_button.wait_for(state="visible", timeout=5000)
+                        login_button.click(timeout=3000)
+                        print("  ✓ Login button clicked using role selector")
+                        login_clicked = True
+                    except Exception as e:
+                        print(f"  ⚠ Strategy 1 failed: {str(e)[:80]}")
+                
+                # Strategy 2: Submit button
+                if not login_clicked:
+                    try:
+                        print("   → Strategy 2: Submit button...")
+                        submit_btn = page.locator('button[type="submit"]').first
+                        submit_btn.wait_for(state="visible", timeout=5000)
+                        submit_btn.click(timeout=3000)
+                        print("  ✓ Login button clicked using submit selector")
+                        login_clicked = True
+                    except Exception as e:
+                        print(f"  ⚠ Strategy 2 failed: {str(e)[:80]}")
+                
+                # Strategy 3: Any button with "Log" text
+                if not login_clicked:
+                    try:
+                        print("   → Strategy 3: Button with 'Log' text...")
+                        log_btn = page.locator('button:has-text("Log")').first
+                        log_btn.wait_for(state="visible", timeout=5000)
+                        log_btn.click(timeout=3000)
+                        print("  ✓ Login button clicked using text selector")
+                        login_clicked = True
+                    except Exception as e:
+                        print(f"  ⚠ Strategy 3 failed: {str(e)[:80]}")
+                
+                # Strategy 4: Any button in the form
+                if not login_clicked:
+                    try:
+                        print("   → Strategy 4: Any form button...")
+                        form_btn = page.locator('form button').first
+                        form_btn.wait_for(state="visible", timeout=5000)
+                        form_btn.click(timeout=3000)
+                        print("  ✓ Login button clicked using form selector")
+                        login_clicked = True
+                    except Exception as e:
+                        print(f"  ⚠ Strategy 4 failed: {str(e)[:80]}")
+                
+                # Strategy 5: Press Enter key on password field
+                if not login_clicked:
+                    try:
+                        print("   → Strategy 5: Press Enter key...")
+                        password_field = page.locator('input[type="password"]').first
+                        password_field.press("Enter")
+                        print("  ✓ Submitted form using Enter key")
+                        login_clicked = True
+                    except Exception as e:
+                        print(f"  ⚠ Strategy 5 failed: {str(e)[:80]}")
+                
+                # Strategy 6: JavaScript click
+                if not login_clicked:
+                    try:
+                        print("   → Strategy 6: JavaScript click...")
+                        page.evaluate("""
+                            const buttons = document.querySelectorAll('button');
+                            for (let btn of buttons) {
+                                if (btn.textContent.includes('Log') || btn.type === 'submit') {
+                                    btn.click();
+                                    break;
+                                }
+                            }
+                        """)
+                        print("  ✓ Login button clicked using JavaScript")
+                        login_clicked = True
+                    except Exception as e:
+                        print(f"  ⚠ Strategy 6 failed: {str(e)[:80]}")
+                
+                if not login_clicked:
+                    # Debug: save screenshot and page content
+                    try:
+                        debug_screenshot = "data/debug_login_form.png"
+                        page.screenshot(path=debug_screenshot)
+                        print(f"  📸 Debug screenshot saved: {debug_screenshot}")
+                        
+                        # Get all buttons on the page
+                        buttons = page.locator('button').all()
+                        print(f"  🔍 Found {len(buttons)} buttons on page")
+                        for i, btn in enumerate(buttons[:5]):  # Show first 5
+                            try:
+                                text = btn.text_content(timeout=1000)
+                                print(f"     Button {i}: '{text}'")
+                            except:
+                                print(f"     Button {i}: (could not get text)")
+                    except:
+                        pass
+                    
+                    raise Exception("Could not click login button with any strategy")
                 
                 print("   Waiting for login to complete...")
-                time.sleep(8)  # Increased from 5 (GitHub Actions is slower)
+                time.sleep(8)
                 
                 # Verify login succeeded
                 print("   Verifying login...")
@@ -184,7 +269,7 @@ def run_playwright():
                          wait_until="domcontentloaded", 
                          timeout=60000)
                 
-                time.sleep(5)  # Increased wait time
+                time.sleep(5)
             
             # Now we're on the monitoring page
             print("   Waiting for page to fully render...")
