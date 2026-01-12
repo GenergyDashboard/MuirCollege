@@ -164,40 +164,99 @@ def run_playwright():
         
         try:
             if not skip_login:
-                # Perform manual login
+                # Perform manual login - USING EXACT URL FROM WORKING COLLECTOR.PY
                 print("   Navigating to login page...")
                 page.goto("https://pass.enerest.world/auth/realms/pass/protocol/openid-connect/auth?response_type=code&client_id=1d699ca7-87c8-4d6d-98dc-32a4cc316907&state=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&redirect_uri=https%3A%2F%2Fgenergy.enerest.world%2Findex.html&scope=openid%20profile&code_challenge=66CPKTUs7xUuUNmX1CvSRmQXO8ZllglERBHknop_ikg&code_challenge_method=S256&nonce=S01PQVY4dnJ3cUdfY3l-YkRWbDZtRmNwY05PQ3BfcEZYclRqUnlIemN1ZXZq&responseMode=query", 
                           timeout=60000)
                 
+                print("   Waiting for page load...")
                 page.wait_for_load_state("networkidle", timeout=60000)
                 page.wait_for_timeout(2000)
                 
                 print("   Filling in credentials...")
+                # Use multiple fallback selectors like collector.py
                 try:
+                    page.get_by_role("textbox", name="Email").click(timeout=10000)
                     page.get_by_role("textbox", name="Email").fill(SOLAR_EMAIL)
-                    print("  ✓ Email filled")
+                    print("  ✓ Email filled using role selector")
                 except Exception as e:
-                    print(f"  ⚠ Email field error, trying fallback: {e}")
-                    page.locator('input[type="text"]').first.fill(SOLAR_EMAIL, timeout=5000)
+                    print(f"  ⚠ Role selector failed, trying fallback: {e}")
+                    email_selectors = [
+                        'input[type="text"]',
+                        'input[placeholder*="Mail" i]',
+                        'input[name*="mail" i]',
+                        'input[id*="mail" i]'
+                    ]
+                    
+                    email_filled = False
+                    for selector in email_selectors:
+                        try:
+                            page.locator(selector).first.fill(SOLAR_EMAIL, timeout=5000)
+                            print(f"  ✓ Email filled using selector: {selector}")
+                            email_filled = True
+                            break
+                        except:
+                            continue
+                    
+                    if not email_filled:
+                        raise Exception("Could not find email input field")
                 
                 page.wait_for_timeout(1000)
                 
+                print("   Filling password...")
                 try:
+                    page.get_by_role("textbox", name="Password").click(timeout=10000)
                     page.get_by_role("textbox", name="Password").fill(SOLAR_PASSWORD)
-                    print("  ✓ Password filled")
+                    print("  ✓ Password filled using role selector")
                 except Exception as e:
-                    print(f"  ⚠ Password field error, trying fallback: {e}")
-                    page.locator('input[type="password"]').first.fill(SOLAR_PASSWORD, timeout=5000)
+                    print(f"  ⚠ Role selector failed, trying fallback: {e}")
+                    password_selectors = [
+                        'input[type="password"]',
+                        'input[placeholder*="Pass" i]',
+                        'input[name*="pass" i]',
+                        'input[id*="pass" i]'
+                    ]
+                    
+                    password_filled = False
+                    for selector in password_selectors:
+                        try:
+                            page.locator(selector).first.fill(SOLAR_PASSWORD, timeout=5000)
+                            print(f"  ✓ Password filled using selector: {selector}")
+                            password_filled = True
+                            break
+                        except:
+                            continue
+                    
+                    if not password_filled:
+                        raise Exception("Could not find password input field")
                 
                 page.wait_for_timeout(1000)
                 
                 print("   Clicking login button...")
                 try:
                     page.get_by_role("button", name="Log In").click(timeout=10000)
-                    print("  ✓ Login button clicked")
+                    print("  ✓ Login button clicked using role selector")
                 except Exception as e:
-                    print(f"  ⚠ Login button error, trying fallback: {e}")
-                    page.locator('button[type="submit"]').first.click(timeout=5000)
+                    print(f"  ⚠ Role selector failed, trying fallback: {e}")
+                    login_selectors = [
+                        'button:has-text("Log In")',
+                        'button:has-text("Anmelden")',
+                        'button[type="submit"]',
+                        'input[type="submit"]'
+                    ]
+                    
+                    login_clicked = False
+                    for selector in login_selectors:
+                        try:
+                            page.locator(selector).first.click(timeout=5000)
+                            print(f"  ✓ Login button clicked using selector: {selector}")
+                            login_clicked = True
+                            break
+                        except:
+                            continue
+                    
+                    if not login_clicked:
+                        raise Exception("Could not find login button")
                 
                 print("   Waiting for login to complete...")
                 page.wait_for_timeout(5000)
@@ -208,61 +267,42 @@ def run_playwright():
             # Navigate to monitoring page
             print("   Navigating to monitoring page...")
             page.goto("https://genergy.enerest.world/monitoring", timeout=60000)
+            
+            print("   Waiting for page to fully load...")
             page.wait_for_load_state("domcontentloaded", timeout=30000)
             
-            # Wait for network to settle
             try:
-                page.wait_for_load_state("networkidle", timeout=30000)
+                page.wait_for_load_state("networkidle", timeout=10000)
             except:
                 print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            # Give page time to fully render
-            print("   Waiting for page to fully render...")
-            page.wait_for_timeout(15000)
+            page.wait_for_timeout(5000)
             
-            # Handle potential "OK" button (notifications, cookie banners, etc.)
-            try:
-                ok_button = page.get_by_role("button", name="OK")
-                if ok_button.is_visible(timeout=5000):
-                    print("   → Clicking 'OK' button (notification/banner)...")
-                    ok_button.click(timeout=3000)
-                    page.wait_for_timeout(5000)
-                    print("  ✓ OK button clicked")
-            except:
-                pass
-            
-            # Additional wait for UI to stabilize
-            page.wait_for_timeout(8000)
-            
-            # Navigate to Muir College using the proven working method
+            # Navigate to Muir College - USING EXACT SELECTORS FROM WORKING COLLECTOR.PY
             print("   Searching for Muir College...")
             
-            # PRIMARY METHOD: Click magnifying glass → search → click cell → insights
-            # (Based on working Playwright recording from 2024-12-15)
             try:
-                print("   → Clicking magnifying glass icon (#magniGlass)...")
-                page.wait_for_selector("#magniGlass", state="visible", timeout=30000)
-                page.locator("#magniGlass").click(timeout=10000)
+                print("   → Waiting for search component to be visible...")
+                page.wait_for_selector("sds-global-search", state="visible", timeout=30000)
                 page.wait_for_timeout(2000)
                 
-                print("   → Clicking search field...")
-                page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=20000)
-                page.locator("[data-test=\"global-search-field\"]").click(timeout=10000)
+                print("   → Clicking search component...")
+                page.locator("sds-global-search").click()
                 page.wait_for_timeout(1000)
                 
-                print("   → Typing 'Muir'...")
-                page.locator("[data-test=\"global-search-field\"]").fill("Muir")
-                page.wait_for_timeout(3000)
+                print("   → Waiting for search field to be visible...")
+                page.wait_for_selector("[data-test=\"global-search-field\"]", state="visible", timeout=10000)
                 
-                print("   → Clicking 'Muir College' cell...")
-                page.wait_for_selector("role=cell", state="visible", timeout=15000)
-                page.get_by_role("cell", name="Muir College").click(timeout=10000)
-                page.wait_for_timeout(3000)
+                print("   → Filling search field with 'Muir'...")
+                page.locator("[data-test=\"global-search-field\"]").fill("Muir")
+                page.wait_for_timeout(2000)
+                
+                print("   → Waiting for insights button to appear...")
+                page.wait_for_selector("button:has-text('insights')", state="visible", timeout=10000)
                 
                 print("   → Clicking insights button...")
-                page.wait_for_selector("button:has-text('insights')", state="visible", timeout=20000)
                 page.get_by_role("button").filter(has_text="insights").click()
-                page.wait_for_timeout(8000)
+                page.wait_for_timeout(5000)
                 
                 print("  ✓ Successfully navigated to Muir College insights")
                 
@@ -271,25 +311,26 @@ def run_playwright():
                 raise Exception(f"Failed to navigate to Muir College: {e}")
             
             # Wait for insights page to settle
-            print("   Waiting for insights page to load...")
+            print("   Waiting for insights page to fully load...")
             try:
-                page.wait_for_load_state("networkidle", timeout=20000)
+                page.wait_for_load_state("networkidle", timeout=10000)
             except:
                 print("  ⚠ Network still active (normal for SPAs), continuing...")
             
-            page.wait_for_timeout(5000)
+            page.wait_for_timeout(3000)
             print("  ✓ Muir College insights loaded")
             
             # Download CSV
             print("   Downloading CSV...")
-            page.wait_for_selector("[data-test=\"menu-trigger\"]", state="visible", timeout=15000)  # Increased from 10000
-            page.locator("[data-test=\"menu-trigger\"]").click(timeout=8000)  # Increased from 5000
-            page.wait_for_timeout(3000)  # Increased from 2000
+            page.wait_for_selector("[data-test=\"menu-trigger\"]", state="visible", timeout=10000)
+            page.locator("[data-test=\"menu-trigger\"]").click(timeout=5000)
+            page.wait_for_timeout(2000)
             
-            page.wait_for_selector("[role=\"menuitem\"]:has-text('CSV')", state="visible", timeout=15000)  # Increased from 10000
+            print("   Waiting for CSV download...")
+            page.wait_for_selector("[role=\"menuitem\"]:has-text('CSV')", state="visible", timeout=10000)
             
-            with page.expect_download(timeout=45000) as download_info:  # Increased from 30000
-                page.get_by_role("menuitem", name="CSV").click(timeout=8000)  # Increased from 5000
+            with page.expect_download(timeout=30000) as download_info:
+                page.get_by_role("menuitem", name="CSV").click(timeout=5000)
             
             download = download_info.value
             
