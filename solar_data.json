@@ -1,21 +1,12 @@
 {
-  "timestamp": "2026-01-31T18:23:14.529154+00:00",
+  "timestamp": "2026-02-01T06:58:46.123180+00:00",
   "plant_name": "Muir College",
   "location": "Port Elizabeth, South Africa",
-  "yesterday_total_kwh": 967.71,
-  "daily_total_kwh": 981.15,
-  "monthly_total_kwh": 15920.39,
-  "lifetime_total_kwh": 1131677.58,
+  "yesterday_total_kwh": 981.15,
+  "daily_total_kwh": 95.44,
+  "monthly_total_kwh": 95.44,
+  "lifetime_total_kwh": 1131773.02,
   "yesterday_environmental": {
-    "co2_avoided_kg": 968,
-    "trees_planted": 44,
-    "households_powered": 0.27,
-    "km_driven_equivalent": 3855,
-    "km_flown_equivalent": 79,
-    "coal_saved_kg": 492,
-    "water_saved_litres": 1355
-  },
-  "daily_environmental": {
     "co2_avoided_kg": 981,
     "trees_planted": 45,
     "households_powered": 0.28,
@@ -24,38 +15,34 @@
     "coal_saved_kg": 498,
     "water_saved_litres": 1374
   },
+  "daily_environmental": {
+    "co2_avoided_kg": 95,
+    "trees_planted": 4,
+    "households_powered": 0.03,
+    "km_driven_equivalent": 380,
+    "km_flown_equivalent": 8,
+    "coal_saved_kg": 48,
+    "water_saved_litres": 134
+  },
   "monthly_environmental": {
-    "co2_avoided_kg": 15920,
-    "trees_planted": 724,
-    "households_powered": 4.49,
-    "km_driven_equivalent": 63420,
-    "km_flown_equivalent": 1296,
-    "coal_saved_kg": 8088,
-    "water_saved_litres": 22289
+    "co2_avoided_kg": 95,
+    "trees_planted": 4,
+    "households_powered": 0.03,
+    "km_driven_equivalent": 380,
+    "km_flown_equivalent": 8,
+    "coal_saved_kg": 48,
+    "water_saved_litres": 134
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1131678,
-    "trees_planted": 51440,
-    "households_powered": 319.09,
-    "km_driven_equivalent": 4508083,
-    "km_flown_equivalent": 92154,
-    "coal_saved_kg": 574918,
-    "water_saved_litres": 1584349
+    "co2_avoided_kg": 1131773,
+    "trees_planted": 51444,
+    "households_powered": 319.11,
+    "km_driven_equivalent": 4508463,
+    "km_flown_equivalent": 92162,
+    "coal_saved_kg": 574967,
+    "water_saved_litres": 1584482
   },
   "past_7_days": [
-    {
-      "date": "2026-01-24",
-      "total_kwh": 1062.05,
-      "environmental": {
-        "co2_avoided_kg": 1062,
-        "trees_planted": 48,
-        "households_powered": 0.3,
-        "km_driven_equivalent": 4231,
-        "km_flown_equivalent": 86,
-        "coal_saved_kg": 540,
-        "water_saved_litres": 1487
-      }
-    },
     {
       "date": "2026-01-25",
       "total_kwh": 1052.44,
@@ -132,6 +119,19 @@
         "km_flown_equivalent": 79,
         "coal_saved_kg": 492,
         "water_saved_litres": 1355
+      }
+    },
+    {
+      "date": "2026-01-31",
+      "total_kwh": 981.15,
+      "environmental": {
+        "co2_avoided_kg": 981,
+        "trees_planted": 45,
+        "households_powered": 0.28,
+        "km_driven_equivalent": 3908,
+        "km_flown_equivalent": 80,
+        "coal_saved_kg": 498,
+        "water_saved_litres": 1374
       }
     }
   ]
