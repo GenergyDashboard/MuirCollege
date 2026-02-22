@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-02-22T06:57:51.497921+00:00",
+  "timestamp": "2026-02-22T11:17:32.008497+00:00",
   "plant_name": "Muir College",
   "location": "Port Elizabeth, South Africa",
   "yesterday_total_kwh": 362.72,
-  "daily_total_kwh": 137.57,
-  "monthly_total_kwh": 12582.64,
-  "lifetime_total_kwh": 1144260.22,
+  "daily_total_kwh": 618.48,
+  "monthly_total_kwh": 13063.54,
+  "lifetime_total_kwh": 1144741.12,
   "yesterday_environmental": {
     "co2_avoided_kg": 363,
     "trees_planted": 16,
@@ -16,31 +16,31 @@
     "water_saved_litres": 508
   },
   "daily_environmental": {
-    "co2_avoided_kg": 138,
-    "trees_planted": 6,
-    "households_powered": 0.04,
-    "km_driven_equivalent": 548,
-    "km_flown_equivalent": 11,
-    "coal_saved_kg": 70,
-    "water_saved_litres": 193
+    "co2_avoided_kg": 618,
+    "trees_planted": 28,
+    "households_powered": 0.17,
+    "km_driven_equivalent": 2464,
+    "km_flown_equivalent": 50,
+    "coal_saved_kg": 314,
+    "water_saved_litres": 866
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 12583,
-    "trees_planted": 572,
-    "households_powered": 3.55,
-    "km_driven_equivalent": 50123,
-    "km_flown_equivalent": 1025,
-    "coal_saved_kg": 6392,
-    "water_saved_litres": 17616
+    "co2_avoided_kg": 13064,
+    "trees_planted": 594,
+    "households_powered": 3.68,
+    "km_driven_equivalent": 52039,
+    "km_flown_equivalent": 1064,
+    "coal_saved_kg": 6637,
+    "water_saved_litres": 18289
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1144260,
-    "trees_planted": 52012,
-    "households_powered": 322.63,
-    "km_driven_equivalent": 4558206,
-    "km_flown_equivalent": 93179,
-    "coal_saved_kg": 581311,
-    "water_saved_litres": 1601964
+    "co2_avoided_kg": 1144741,
+    "trees_planted": 52034,
+    "households_powered": 322.77,
+    "km_driven_equivalent": 4560122,
+    "km_flown_equivalent": 93218,
+    "coal_saved_kg": 581555,
+    "water_saved_litres": 1602638
   },
   "past_7_days": [
     {
