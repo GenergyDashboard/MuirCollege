@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-03-19T11:32:08.477991+00:00",
+  "timestamp": "2026-03-19T18:46:36.895551+00:00",
   "plant_name": "Muir College",
   "location": "Port Elizabeth, South Africa",
   "yesterday_total_kwh": 615.62,
-  "daily_total_kwh": 636.65,
-  "monthly_total_kwh": 13018.98,
-  "lifetime_total_kwh": 1161425.69,
+  "daily_total_kwh": 863.29,
+  "monthly_total_kwh": 13245.62,
+  "lifetime_total_kwh": 1161652.33,
   "yesterday_environmental": {
     "co2_avoided_kg": 616,
     "trees_planted": 28,
@@ -16,31 +16,31 @@
     "water_saved_litres": 862
   },
   "daily_environmental": {
-    "co2_avoided_kg": 637,
-    "trees_planted": 29,
-    "households_powered": 0.18,
-    "km_driven_equivalent": 2536,
-    "km_flown_equivalent": 52,
-    "coal_saved_kg": 323,
-    "water_saved_litres": 891
+    "co2_avoided_kg": 863,
+    "trees_planted": 39,
+    "households_powered": 0.24,
+    "km_driven_equivalent": 3439,
+    "km_flown_equivalent": 70,
+    "coal_saved_kg": 439,
+    "water_saved_litres": 1209
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 13019,
-    "trees_planted": 592,
-    "households_powered": 3.67,
-    "km_driven_equivalent": 51862,
-    "km_flown_equivalent": 1060,
-    "coal_saved_kg": 6614,
-    "water_saved_litres": 18227
+    "co2_avoided_kg": 13246,
+    "trees_planted": 602,
+    "households_powered": 3.73,
+    "km_driven_equivalent": 52764,
+    "km_flown_equivalent": 1079,
+    "coal_saved_kg": 6729,
+    "water_saved_litres": 18544
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1161426,
-    "trees_planted": 52792,
-    "households_powered": 327.47,
-    "km_driven_equivalent": 4626586,
-    "km_flown_equivalent": 94577,
-    "coal_saved_kg": 590031,
-    "water_saved_litres": 1625996
+    "co2_avoided_kg": 1161652,
+    "trees_planted": 52802,
+    "households_powered": 327.54,
+    "km_driven_equivalent": 4627489,
+    "km_flown_equivalent": 94595,
+    "coal_saved_kg": 590146,
+    "water_saved_litres": 1626313
   },
   "past_7_days": [
     {
