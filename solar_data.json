@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-06-03T11:09:56.316052+00:00",
+  "timestamp": "2026-06-03T15:26:16.426252+00:00",
   "plant_name": "Muir College",
   "location": "Port Elizabeth, South Africa",
   "yesterday_total_kwh": 455.26,
-  "daily_total_kwh": 23.01,
-  "monthly_total_kwh": 1113.09,
-  "lifetime_total_kwh": 1202580.42,
+  "daily_total_kwh": 31.54,
+  "monthly_total_kwh": 1121.62,
+  "lifetime_total_kwh": 1202588.94,
   "yesterday_environmental": {
     "co2_avoided_kg": 455,
     "trees_planted": 21,
@@ -16,31 +16,31 @@
     "water_saved_litres": 637
   },
   "daily_environmental": {
-    "co2_avoided_kg": 23,
+    "co2_avoided_kg": 32,
     "trees_planted": 1,
     "households_powered": 0.01,
-    "km_driven_equivalent": 92,
-    "km_flown_equivalent": 2,
-    "coal_saved_kg": 12,
-    "water_saved_litres": 32
+    "km_driven_equivalent": 126,
+    "km_flown_equivalent": 3,
+    "coal_saved_kg": 16,
+    "water_saved_litres": 44
   },
   "monthly_environmental": {
-    "co2_avoided_kg": 1113,
+    "co2_avoided_kg": 1122,
     "trees_planted": 51,
-    "households_powered": 0.31,
-    "km_driven_equivalent": 4434,
+    "households_powered": 0.32,
+    "km_driven_equivalent": 4468,
     "km_flown_equivalent": 91,
-    "coal_saved_kg": 565,
-    "water_saved_litres": 1558
+    "coal_saved_kg": 570,
+    "water_saved_litres": 1570
   },
   "lifetime_environmental": {
-    "co2_avoided_kg": 1202580,
+    "co2_avoided_kg": 1202589,
     "trees_planted": 54663,
     "households_powered": 339.08,
-    "km_driven_equivalent": 4790527,
-    "km_flown_equivalent": 97928,
-    "coal_saved_kg": 610939,
-    "water_saved_litres": 1683613
+    "km_driven_equivalent": 4790561,
+    "km_flown_equivalent": 97929,
+    "coal_saved_kg": 610943,
+    "water_saved_litres": 1683625
   },
   "past_7_days": [
     {
