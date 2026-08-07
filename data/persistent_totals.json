@@ -1,24 +1,11 @@
 {
-  "lifetime_total_kwh": 1217529.363083332,
-  "month_start_total_kwh": 3014.11175,
+  "lifetime_total_kwh": 1218208.2341666655,
+  "month_start_total_kwh": 3692.9828333333335,
   "current_month": 8,
   "current_year": 2026,
-  "last_daily_total": 678.8710833333332,
-  "last_update_date": "2026-08-06",
+  "last_daily_total": 36.102916666666665,
+  "last_update_date": "2026-08-07",
   "daily_history": [
-    {
-      "date": "2026-07-30",
-      "total_kwh": 0.0,
-      "environmental": {
-        "co2_avoided_kg": 0,
-        "trees_planted": 0,
-        "households_powered": 0.0,
-        "km_driven_equivalent": 0,
-        "km_flown_equivalent": 0,
-        "coal_saved_kg": 0,
-        "water_saved_litres": 0
-      }
-    },
     {
       "date": "2026-07-31",
       "total_kwh": 751.09,
@@ -95,6 +82,19 @@
         "km_flown_equivalent": 54,
         "coal_saved_kg": 339,
         "water_saved_litres": 935
+      }
+    },
+    {
+      "date": "2026-08-06",
+      "total_kwh": 678.87,
+      "environmental": {
+        "co2_avoided_kg": 679,
+        "trees_planted": 31,
+        "households_powered": 0.19,
+        "km_driven_equivalent": 2704,
+        "km_flown_equivalent": 55,
+        "coal_saved_kg": 345,
+        "water_saved_litres": 950
       }
     }
   ]
